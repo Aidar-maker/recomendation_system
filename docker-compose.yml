@@ -1,0 +1,71 @@
+version: '3.8'
+
+services:
+  db:
+    image: mysql:8.0
+    container_name: book_db
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: book_recommender
+      MYSQL_USER: bookuser
+      MYSQL_PASSWORD: bookpassword
+    volumes:
+      - ./database:/docker-entrypoint-initdb.d
+      - db_data:/var/lib/mysql
+    ports:
+      - "3306:3306"
+    networks:
+      - book-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 20s
+      retries: 10
+
+  php-app:
+    build: ./php-app
+    container_name: book_php
+    ports:
+      - "8080:80"
+    volumes:
+      - ./php-app:/var/www/html
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DB_HOST: db
+      DB_NAME: book_recommender
+      DB_USER: bookuser
+      DB_PASS: bookpassword
+      ML_SERVICE_URL: http://ml-service:8000
+      ML_API_KEY: secret-ml-api-key-2024
+    networks:
+      - book-network
+
+  ml-service:
+    build: ./ml-service
+    container_name: book_ml
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: mysql+pymysql://bookuser:bookpassword@db:3306/book_recommender
+      API_KEY: secret-ml-api-key-2024
+    networks:
+      - book-network
+
+  redis:
+    image: redis:alpine
+    container_name: book_redis
+    ports:
+      - "6379:6379"
+    networks:
+      - book-network
+
+volumes:
+  db_data:
+
+networks:
+  book-network:
+    driver: bridge
