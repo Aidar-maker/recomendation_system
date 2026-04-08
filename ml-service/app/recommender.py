@@ -1,15 +1,18 @@
+# В начале файла замените импорт:
+# from surprise import SVD, Dataset, Reader
+# на:
+from sklearn.decomposition import NMF
+from sklearn.neighbors import NearestNeighbors
+from sklearn.preprocessing import StandardScaler
 import pandas as pd
 import numpy as np
-from surprise import SVD, Dataset, Reader
-from surprise.model_selection import train_test_split
 from .database import get_db_connection
 
 class RecommendationEngine:
     def __init__(self):
         self.conn = get_db_connection()
-        self.model = None
+        self.user_item_matrix = None
         self.book_data = None
-        self.user_data = None
         
     def load_data(self):
         """Загрузка данных из БД"""
@@ -19,60 +22,67 @@ class RecommendationEngine:
         books_query = "SELECT book_id, title, author FROM Book"
         self.book_data = pd.read_sql(books_query, self.conn)
         
-    def train_model(self):
-        """Обучение модели SVD"""
+    def _create_user_item_matrix(self):
+        """Создание матрицы пользователь-книга"""
         if self.ratings_df.empty:
-            return False
+            return None, None, None
             
-        reader = Reader(rating_scale=(1, 5))
-        data = Dataset.load_from_df(self.ratings_df[['user_id', 'book_id', 'rating']], reader)
-        trainset, _ = train_test_split(data, test_size=0.2)
-        
-        self.model = SVD(n_epochs=25, verbose=False)
-        self.model.fit(trainset)
-        return True
+        # Pivot table: пользователи × книги
+        matrix = self.ratings_df.pivot_table(
+            index='user_id', 
+            columns='book_id', 
+            values='rating',
+            fill_value=0
+        )
+        return matrix, matrix.index.tolist(), matrix.columns.tolist()
     
     def get_user_recommendations(self, user_id: int, limit: int = 5):
-        """Персональные рекомендации"""
+        """Персональные рекомендации через NMF"""
         self.load_data()
         
-        # Проверка истории пользователя
-        user_ratings = self.ratings_df[self.ratings_df['user_id'] == user_id]
-        
-        if user_ratings.empty or self.ratings_df.empty:
-            # Холодный старт - популярные книги
+        if self.ratings_df.empty:
             return self._get_popular_books(limit)
         
-        # Обучаем модель на лету (для продакшена лучше кэшировать)
-        self.train_model()
+        matrix, users, books = self._create_user_item_matrix()
+        if matrix is None or user_id not in users:
+            return self._get_popular_books(limit)
         
-        # Генерация прогнозов для непрочитанных книг
-        rated_books = set(user_ratings['book_id'].values)
-        all_books = set(self.book_data['book_id'].values)
-        unread_books = list(all_books - rated_books)
+        # NMF для скрытых факторов
+        model = NMF(n_components=20, random_state=42, init='random')
+        user_factors = model.fit_transform(matrix)
+        item_factors = model.components_
         
-        predictions = []
-        for book_id in unread_books:
-            pred = self.model.predict(user_id, book_id)
-            predictions.append({
-                'book_id': book_id,
-                'predicted_rating': pred.est
-            })
+        # Прогноз для текущего пользователя
+        user_idx = users.index(user_id)
+        predictions = np.dot(user_factors[user_idx], item_factors)
+        
+        # Исключаем уже прочитанные книги
+        rated_books = set(self.ratings_df[
+            self.ratings_df['user_id'] == user_id
+        ]['book_id'].values)
+        
+        recommendations = []
+        for idx, book_id in enumerate(books):
+            if book_id not in rated_books:
+                recommendations.append({
+                    'book_id': int(book_id),
+                    'predicted_rating': round(float(predictions[idx]), 2)
+                })
         
         # Сортировка и возврат топ-N
-        predictions.sort(key=lambda x: x['predicted_rating'], reverse=True)
-        top_predictions = predictions[:limit]
+        recommendations.sort(key=lambda x: x['predicted_rating'], reverse=True)
+        top_recs = recommendations[:limit]
         
-        # Добавление информации о книгах
+        # Добавляем информацию о книгах
         result = []
-        for pred in top_predictions:
-            book_info = self.book_data[self.book_data['book_id'] == pred['book_id']]
+        for rec in top_recs:
+            book_info = self.book_data[self.book_data['book_id'] == rec['book_id']]
             if not book_info.empty:
                 result.append({
-                    'book_id': int(pred['book_id']),
+                    'book_id': rec['book_id'],
                     'title': book_info.iloc[0]['title'],
                     'author': book_info.iloc[0]['author'],
-                    'predicted_rating': round(pred['predicted_rating'], 2)
+                    'predicted_rating': rec['predicted_rating']
                 })
         
         return result
@@ -80,14 +90,16 @@ class RecommendationEngine:
     def _get_popular_books(self, limit: int):
         """Fallback - популярные книги"""
         query = """
-            SELECT b.book_id, b.title, b.author, COUNT(r.rating) as rating_count
+            SELECT b.book_id, b.title, b.author, COUNT(r.rating) as cnt
             FROM Book b
             LEFT JOIN Ratings r ON b.book_id = r.book_id
             GROUP BY b.book_id
-            ORDER BY rating_count DESC
+            ORDER BY cnt DESC
             LIMIT %s
         """
         df = pd.read_sql(query, self.conn, params=(limit,))
+        # Добавляем фиктивный рейтинг для совместимости
+        df['predicted_rating'] = 4.5
         return df.to_dict('records')
     
     def get_similar_books(self, book_id: int, limit: int = 5):
