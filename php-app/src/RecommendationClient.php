@@ -1,16 +1,23 @@
 <?php
 namespace App;
 
+/**
+ * Клиент для общения с ML-сервисом (FastAPI)
+ */
 class RecommendationClient {
     private $apiUrl;
     private $apiKey;
-    private $timeout = 1; // секунда
+    private $timeout = 1; // 1 секунда таймаут
     
     public function __construct() {
+        // URL ML-сервиса из docker-compose
         $this->apiUrl = getenv('ML_SERVICE_URL') ?: 'http://ml-service:8000';
         $this->apiKey = getenv('ML_API_KEY') ?: 'secret-ml-api-key-2024';
     }
     
+    /**
+     * Получить рекомендации для пользователя
+     */
     public function getRecommendations(int $userId, int $limit = 5): array {
         try {
             $url = "{$this->apiUrl}/api/v1/recommend";
@@ -30,10 +37,12 @@ class RecommendationClient {
             $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
             curl_close($ch);
             
+            // Если ML-сервис ответил успешно
             if ($httpCode === 200 && $response) {
                 return json_decode($response, true);
             }
             
+            // Fallback: популярные книги при ошибке
             return $this->getFallbackBooks($limit);
             
         } catch (\Exception $e) {
@@ -42,6 +51,9 @@ class RecommendationClient {
         }
     }
     
+    /**
+     * Получить похожие книги
+     */
     public function getSimilarBooks(int $bookId, int $limit = 5): array {
         try {
             $url = "{$this->apiUrl}/api/v1/similar";
@@ -73,16 +85,13 @@ class RecommendationClient {
         }
     }
     
+    /**
+     * Заглушка при недоступности ML-сервиса
+     */
     private function getFallbackBooks(int $limit): array {
-        // Возвращает популярные книги при ошибке ML
         return [
-            ['book_id' => 1, 'title' => 'Популярная книга 1', 'author' => 'Автор', 'predicted_rating' => 5.0],
-            ['book_id' => 2, 'title' => 'Популярная книга 2', 'author' => 'Автор', 'predicted_rating' => 4.8],
+            ['book_id' => 1, 'title' => 'Мастер и Маргарита', 'author' => 'Булгаков', 'predicted_rating' => 5.0],
+            ['book_id' => 2, 'title' => 'Преступление и наказание', 'author' => 'Достоевский', 'predicted_rating' => 4.8],
         ];
-    }
-    
-    public function logInteraction(int $userId, int $bookId, string $type): void {
-        // Логирование в БД через основной PHP слой
-        // Вызывается при просмотре, оценке, покупке
     }
 }
