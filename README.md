@@ -86,7 +86,7 @@ Python Пример
 Используйте библиотеку requests для POST-запроса на endpoint /api/v1/recommend с JSON телом {"user_id": user_id, "limit": limit} и заголовками авторизации.
 # Статистика Датасета
 Пользователей: 278,858
-Книг: ~10,000+
+Книг: ~270,000+
 Оценок: ~1,000,000+
 Диапазон оценок: 1-10
 Средняя оценка: ~7.5
@@ -100,7 +100,7 @@ DB_PASS: bookpassword (пароль БД)
 DB_NAME: book_recommender (имя базы данных)
 API_KEY: secret-ml-api-key-2024 (ключ API)
 ML_SERVICE_URL: http://ml-service:8000 (URL ML сервиса)
-Порты
+# Порты
 MySQL: 3306
 ML API: 8000
 PHP App: 8080
