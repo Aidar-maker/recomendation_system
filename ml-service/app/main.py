@@ -23,7 +23,7 @@ API_KEY = "secret-ml-api-key-2024"
 # Модель данных для запроса рекомендаций
 class RecommendationRequest(BaseModel):
     user_id: int
-    limit: int = 5
+    limit: int
 
 # Модель данных для ответа
 class BookRecommendation(BaseModel):

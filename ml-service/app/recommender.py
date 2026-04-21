@@ -5,8 +5,7 @@ from .database import get_db_connection
 
 class RecommendationEngine:
     """
-    Движок рекомендаций
-    Использует NMF (Non-negative Matrix Factorization) для коллаборативной фильтрации
+    Движок рекомендаций (ОПТИМИЗИРОВАННЫЙ)
     """
     
     def __init__(self):
@@ -16,29 +15,38 @@ class RecommendationEngine:
         
     def load_data(self):
         """Загружает данные из БД"""
-        # Получаем все оценки пользователей
         ratings_query = "SELECT user_id, book_id, rating FROM Ratings WHERE rating IS NOT NULL"
         self.ratings_df = pd.read_sql(ratings_query, self.conn)
         
-        # Получаем информацию о книгах
         books_query = "SELECT book_id, title, author FROM Book"
         self.book_data = pd.read_sql(books_query, self.conn)
     
     def _create_user_item_matrix(self):
         """
         Создаёт матрицу пользователь × книга
-        Фильтруем пользователей с минимум 5 оценками
+        СИЛЬНО фильтруем для уменьшения размера
         """
         if self.ratings_df.empty:
             return None, None, None
         
-        # Фильтруем: оставляем пользователей с >= 5 оценками
+        # Фильтр 1: Пользователи с >= 10 оценками (было 5)
         user_counts = self.ratings_df['user_id'].value_counts()
-        active_users = user_counts[user_counts >= 5].index.tolist()
+        active_users = user_counts[user_counts >= 10].index.tolist()
         
+        # Фильтр 2: Книги с >= 5 оценками
+        book_counts = self.ratings_df['book_id'].value_counts()
+        active_books = book_counts[book_counts >= 5].index.tolist()
+        
+        # Фильтруем
         filtered_ratings = self.ratings_df[
-            self.ratings_df['user_id'].isin(active_users)
+            (self.ratings_df['user_id'].isin(active_users)) &
+            (self.ratings_df['book_id'].isin(active_books))
         ]
+        
+        print(f"📊 Матрица: {len(active_users)} пользователей × {len(active_books)} книг")
+        
+        if filtered_ratings.empty:
+            return None, None, None
         
         # Pivot таблица
         matrix = filtered_ratings.pivot_table(
@@ -52,36 +60,43 @@ class RecommendationEngine:
     
     def get_user_recommendations(self, user_id: int, limit: int = 5):
         """
-        Генерирует персональные рекомендации для пользователя
+        Генерирует персональные рекомендации
         """
         self.load_data()
         
-        # Если нет данных - возвращаем популярные книги
         if self.ratings_df.empty:
             return self._get_popular_books(limit)
         
         matrix, users, books = self._create_user_item_matrix()
         
-        # Если пользователь не найден - популярные книги
+        # Если матрица не создалась или пользователь не найден
         if matrix is None or user_id not in users:
+            print(f"⚠️  Пользователь {user_id} не найден, возвращаем популярные")
             return self._get_popular_books(limit)
         
-        # NMF разложение для поиска скрытых факторов
-        # n_components=20 - количество скрытых признаков
-        model = NMF(n_components=20, random_state=42, init='random')
-        user_factors = model.fit_transform(matrix)
-        item_factors = model.components_
+        # NMF с МЕНЬШИМ количеством компонентов
+        n_components = min(10, len(users) - 1, len(books) - 1)
+        print(f"🔧 NMF компонентов: {n_components}")
         
-        # Предсказание оценок для текущего пользователя
-        user_idx = users.index(user_id)
-        predictions = np.dot(user_factors[user_idx], item_factors)
+        try:
+            model = NMF(n_components=n_components, random_state=42, init='random', max_iter=50)
+            user_factors = model.fit_transform(matrix)
+            item_factors = model.components_
+            
+            # Предсказание
+            user_idx = users.index(user_id)
+            predictions = np.dot(user_factors[user_idx], item_factors)
+            
+        except Exception as e:
+            print(f"❌ NMF ошибка: {e}")
+            return self._get_popular_books(limit)
         
-        # Исключаем уже прочитанные книги
+        # Исключаем прочитанные
         rated_books = set(self.ratings_df[
             self.ratings_df['user_id'] == user_id
         ]['book_id'].values)
         
-        # Формируем список рекомендаций
+        # Формируем рекомендации
         recommendations = []
         for idx, book_id in enumerate(books):
             if book_id not in rated_books:
@@ -90,7 +105,6 @@ class RecommendationEngine:
                     'predicted_rating': round(float(predictions[idx]), 2)
                 })
         
-        # Сортируем по прогнозируемому рейтингу
         recommendations.sort(key=lambda x: x['predicted_rating'], reverse=True)
         top_recs = recommendations[:limit]
         
@@ -106,6 +120,7 @@ class RecommendationEngine:
                     'predicted_rating': rec['predicted_rating']
                 })
         
+        print(f"✅ Найдено {len(result)} рекомендаций")
         return result
     
     def _get_popular_books(self, limit: int):
@@ -123,9 +138,7 @@ class RecommendationEngine:
         return df.to_dict('records')
     
     def get_similar_books(self, book_id: int, limit: int = 5):
-        """
-        Возвращает похожие книги через жанры (контентная фильтрация)
-        """
+        """Возвращает похожие книги через жанры"""
         query = """
             SELECT b2.book_id, b2.title, b2.author
             FROM Book b1
