@@ -27,18 +27,27 @@ class RecommendationEngine:
     def _create_user_item_matrix(self):
         """
         Создаёт матрицу пользователь × книга
-        Строки = пользователи, Столбцы = книги, Значения = оценки
+        Фильтруем пользователей с минимум 5 оценками
         """
         if self.ratings_df.empty:
             return None, None, None
         
-        # Pivot таблица: заполняем пустые ячейки нулями
-        matrix = self.ratings_df.pivot_table(
+        # Фильтруем: оставляем пользователей с >= 5 оценками
+        user_counts = self.ratings_df['user_id'].value_counts()
+        active_users = user_counts[user_counts >= 5].index.tolist()
+        
+        filtered_ratings = self.ratings_df[
+            self.ratings_df['user_id'].isin(active_users)
+        ]
+        
+        # Pivot таблица
+        matrix = filtered_ratings.pivot_table(
             index='user_id', 
             columns='book_id', 
             values='rating',
             fill_value=0
         )
+        
         return matrix, matrix.index.tolist(), matrix.columns.tolist()
     
     def get_user_recommendations(self, user_id: int, limit: int = 5):

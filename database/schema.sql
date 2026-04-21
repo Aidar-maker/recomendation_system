@@ -37,7 +37,7 @@ CREATE TABLE Book_Genres (
 CREATE TABLE Ratings (
     user_id INT NOT NULL,
     book_id INT NOT NULL,
-    rating INT NULL CHECK (rating >= 1 AND rating <= 10),
+    rating INT NULL CHECK (rating >= 0 AND rating <= 10),
     rated_at DATETIME NULL,
     PRIMARY KEY (user_id, book_id),
     FOREIGN KEY (user_id) REFERENCES Users(user_id) ON DELETE CASCADE,

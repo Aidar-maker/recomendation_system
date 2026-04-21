@@ -1,3 +1,4 @@
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi import FastAPI, HTTPException, Security, Depends
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel
@@ -7,6 +8,14 @@ from .recommender import RecommendationEngine
 # Инициализация FastAPI приложения
 app = FastAPI(title="Книжный Советник API", version="1.0.0")
 security = HTTPBearer()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Для разработки
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # API ключ для защиты от внешних запросов
 API_KEY = "secret-ml-api-key-2024"
