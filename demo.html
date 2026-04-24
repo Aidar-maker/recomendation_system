@@ -1,9 +1,9 @@
- <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title> Книжный Советник - Демо</title>
+    <title>📚 Книжный Советник - Демо</title>
     <style>
         * {
             margin: 0;
@@ -49,6 +49,14 @@
             border-radius: 15px;
             margin-bottom: 30px;
             box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        
+        .form-section h2 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 24px;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
         }
         
         .form-group {
@@ -227,16 +235,75 @@
         .stats strong {
             color: #667eea;
         }
+        
+        /* Стили для жанров */
+        .genres-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 10px;
+            margin-top: 10px;
+            max-height: 300px;
+            overflow-y: auto;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+        
+        .genre-item {
+            display: flex;
+            align-items: center;
+            padding: 8px;
+            background: white;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        
+        .genre-item:hover {
+            background: #e8f4f8;
+        }
+        
+        .genre-item input[type="checkbox"] {
+            margin-right: 10px;
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+        
+        .genre-item label {
+            cursor: pointer;
+            margin: 0;
+            font-weight: normal;
+            font-size: 14px;
+        }
+        
+        .select-all-btn {
+            background: #667eea;
+            color: white;
+            padding: 8px 15px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-bottom: 10px;
+        }
+        
+        .select-all-btn:hover {
+            background: #5568d3;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
-            <h1>Книжный Советник</h1>
+            <h1>📚 Книжный Советник</h1>
             <p>Система рекомендаций книг на основе машинного обучения</p>
         </div>
         
+        <!-- Секция 1: Персональные рекомендации по пользователю -->
         <div class="form-section">
+            <h2>👤 Персональные рекомендации (по истории оценок)</h2>
+            
             <div class="form-group">
                 <label for="userId">ID пользователя:</label>
                 <input type="number" id="userId" placeholder="Например: 11676, 98391, 189835" value="11676">
@@ -247,10 +314,10 @@
                 <input type="number" id="limit" placeholder="5-10" value="5" min="1" max="20">
             </div>
             
-            <button class="btn" onclick="getRecommendations()">Получить рекомендации</button>
+            <button class="btn" onclick="getRecommendations()">🎯 Получить рекомендации</button>
             
             <div class="stats">
-                <strong>Подсказка:</strong> Популярные пользователи: 
+                <strong>💡 Подсказка:</strong> Популярные пользователи: 
                 <a href="#" onclick="setUser(11676); return false;">11676</a> (6943 оценки), 
                 <a href="#" onclick="setUser(98391); return false;">98391</a> (5691 оценка), 
                 <a href="#" onclick="setUser(189835); return false;">189835</a> (1899 оценок)
@@ -259,20 +326,99 @@
             <div class="error" id="error"></div>
         </div>
         
+        <!-- Секция 2: Рекомендации по жанрам -->
+        <div class="form-section">
+            <h2>🎭 Рекомендации по жанрам (для новых пользователей)</h2>
+            
+            <div class="form-group">
+                <label>Выберите предпочитаемые жанры:</label>
+                <button type="button" class="select-all-btn" onclick="toggleAllGenres()">✓ Выделить все / Снять выделение</button>
+                <div class="genres-container" id="genresContainer">
+                    <p style="color: #666; padding: 20px;">Загрузка жанров...</p>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label for="genreLimit">Количество рекомендаций:</label>
+                <input type="number" id="genreLimit" placeholder="5-10" value="5" min="1" max="20">
+            </div>
+            
+            <button class="btn" onclick="getRecommendationsByGenres()">🎯 Получить рекомендации по жанрам</button>
+            
+            <div class="error" id="genreError"></div>
+        </div>
+        
+        <!-- Загрузка -->
         <div class="loading" id="loading">
             <div class="spinner"></div>
             <p>Генерируем персональные рекомендации...</p>
         </div>
         
+        <!-- Результаты персонализации -->
         <div class="results" id="results">
-            <h2>Рекомендации для пользователя <span id="userIdDisplay"></span></h2>
+            <h2>📚 Рекомендации для пользователя <span id="userIdDisplay"></span></h2>
             <div class="books-grid" id="booksGrid"></div>
+        </div>
+        
+        <!-- Результаты по жанрам -->
+        <div class="results" id="genreResults">
+            <h2>📚 Рекомендации по выбранным жанрам</h2>
+            <div class="books-grid" id="genreBooksGrid"></div>
         </div>
     </div>
     
     <script>
         const API_URL = 'http://localhost:8000';
         const API_KEY = 'secret-ml-api-key-2024';
+        let allGenres = [];
+        
+        // Загрузка жанров при загрузке страницы
+        window.onload = async function() {
+            await loadGenres();
+        };
+        
+        async function loadGenres() {
+            try {
+                const response = await fetch(`${API_URL}/api/v1/genres`, {
+                    headers: {
+                        'Authorization': `Bearer ${API_KEY}`
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`Ошибка загрузки жанров: ${response.status}`);
+                }
+                
+                allGenres = await response.json();
+                displayGenres();
+                
+            } catch (error) {
+                console.error('Ошибка загрузки жанров:', error);
+                document.getElementById('genresContainer').innerHTML = 
+                    `<p style="color: #c33;">Ошибка загрузки жанров: ${error.message}</p>`;
+            }
+        }
+        
+        function displayGenres() {
+            const container = document.getElementById('genresContainer');
+            container.innerHTML = '';
+            
+            allGenres.forEach(genre => {
+                const genreDiv = document.createElement('div');
+                genreDiv.className = 'genre-item';
+                genreDiv.innerHTML = `
+                    <input type="checkbox" id="genre_${genre.genre_id}" value="${genre.genre_id}">
+                    <label for="genre_${genre.genre_id}">${genre.genre_name}</label>
+                `;
+                container.appendChild(genreDiv);
+            });
+        }
+        
+        function toggleAllGenres() {
+            const checkboxes = document.querySelectorAll('#genresContainer input[type="checkbox"]');
+            const allChecked = Array.from(checkboxes).every(cb => cb.checked);
+            checkboxes.forEach(cb => cb.checked = !allChecked);
+        }
         
         function setUser(id) {
             document.getElementById('userId').value = id;
@@ -287,8 +433,8 @@
                 return;
             }
             
-            // Скрываем результаты, показываем загрузку
             document.getElementById('results').classList.remove('show');
+            document.getElementById('genreResults').classList.remove('show');
             document.getElementById('loading').classList.add('show');
             document.getElementById('error').classList.remove('show');
             
@@ -319,6 +465,48 @@
             }
         }
         
+        async function getRecommendationsByGenres() {
+            const checkboxes = document.querySelectorAll('#genresContainer input[type="checkbox"]:checked');
+            const genreIds = Array.from(checkboxes).map(cb => parseInt(cb.value));
+            const limit = document.getElementById('genreLimit').value;
+            
+            if (genreIds.length === 0) {
+                showGenreError('Выберите хотя бы один жанр');
+                return;
+            }
+            
+            document.getElementById('results').classList.remove('show');
+            document.getElementById('genreResults').classList.remove('show');
+            document.getElementById('loading').classList.add('show');
+            document.getElementById('genreError').classList.remove('show');
+            
+            try {
+                const response = await fetch(`${API_URL}/api/v1/recommend/genres`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${API_KEY}`
+                    },
+                    body: JSON.stringify({
+                        genres: genreIds,
+                        limit: parseInt(limit)
+                    })
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`Ошибка сервера: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                displayGenreResults(data);
+                
+            } catch (error) {
+                showGenreError(`Ошибка: ${error.message}`);
+            } finally {
+                document.getElementById('loading').classList.remove('show');
+            }
+        }
+        
         function displayResults(books, userId) {
             document.getElementById('userIdDisplay').textContent = userId;
             const grid = document.getElementById('booksGrid');
@@ -335,16 +523,15 @@
                 card.className = 'book-card';
                 card.style.animationDelay = `${index * 0.1}s`;
                 
-                // Используем обложку если есть, иначе заглушка
-                const coverUrl = book.image_url || `https://via.placeholder.com/250x350/667eea/ffffff?text=${encodeURIComponent(book.title.substring(0, 20))}`;
+                const coverUrl = book.cover_url || `https://via.placeholder.com/250x350/667eea/ffffff?text=${encodeURIComponent(book.title.substring(0, 20))}`;
                 
                 card.innerHTML = `
                     <img src="${coverUrl}" alt="${book.title}" class="book-cover" onerror="this.src='https://via.placeholder.com/250x350/cccccc/666666?text=No+Cover'">
                     <div class="book-info">
                         <div class="book-title">${book.title}</div>
-                        <div class="book-author">${book.author}</div>
+                        <div class="book-author">✍️ ${book.author}</div>
                         <div class="book-rating">
-                            <span class="rating-value">${book.predicted_rating}</span>
+                            <span class="rating-value">⭐ ${book.predicted_rating}</span>
                             <span class="rating-label">из 10</span>
                         </div>
                     </div>
@@ -356,17 +543,52 @@
             document.getElementById('results').classList.add('show');
         }
         
+        function displayGenreResults(books) {
+            const grid = document.getElementById('genreBooksGrid');
+            grid.innerHTML = '';
+            
+            if (books.length === 0) {
+                grid.innerHTML = '<p>Книги не найдены</p>';
+                document.getElementById('genreResults').classList.add('show');
+                return;
+            }
+            
+            books.forEach((book, index) => {
+                const card = document.createElement('div');
+                card.className = 'book-card';
+                card.style.animationDelay = `${index * 0.1}s`;
+                
+                const coverUrl = book.cover_url || `https://via.placeholder.com/250x350/764ba2/ffffff?text=${encodeURIComponent(book.title.substring(0, 20))}`;
+                
+                card.innerHTML = `
+                    <img src="${coverUrl}" alt="${book.title}" class="book-cover" onerror="this.src='https://via.placeholder.com/250x350/cccccc/666666?text=No+Cover'">
+                    <div class="book-info">
+                        <div class="book-title">${book.title}</div>
+                        <div class="book-author">✍️ ${book.author}</div>
+                        <div class="book-rating">
+                            <span class="rating-value">⭐ ${book.predicted_rating}</span>
+                            <span class="rating-label">из 10</span>
+                        </div>
+                    </div>
+                `;
+                
+                grid.appendChild(card);
+            });
+            
+            document.getElementById('genreResults').classList.add('show');
+        }
+        
         function showError(message) {
             const errorDiv = document.getElementById('error');
             errorDiv.textContent = message;
             errorDiv.classList.add('show');
         }
         
-        // Загружаем рекомендации при загрузке страницы для первого пользователя
-        window.onload = function() {
-            // Можно раскомментировать для автозагрузки
-            // getRecommendations();
-        };
+        function showGenreError(message) {
+            const errorDiv = document.getElementById('genreError');
+            errorDiv.textContent = message;
+            errorDiv.classList.add('show');
+        }
     </script>
 </body>
 </html>
