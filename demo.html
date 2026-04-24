@@ -1,9 +1,9 @@
-<!DOCTYPE html>
+ <!DOCTYPE html>
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>📚 Книжный Советник - Демо</title>
+    <title> Книжный Советник - Демо</title>
     <style>
         * {
             margin: 0;
@@ -232,25 +232,25 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>📚 Книжный Советник</h1>
+            <h1>Книжный Советник</h1>
             <p>Система рекомендаций книг на основе машинного обучения</p>
         </div>
         
         <div class="form-section">
             <div class="form-group">
-                <label for="userId">👤 ID пользователя:</label>
+                <label for="userId">ID пользователя:</label>
                 <input type="number" id="userId" placeholder="Например: 11676, 98391, 189835" value="11676">
             </div>
             
             <div class="form-group">
-                <label for="limit">📊 Количество рекомендаций:</label>
+                <label for="limit">Количество рекомендаций:</label>
                 <input type="number" id="limit" placeholder="5-10" value="5" min="1" max="20">
             </div>
             
-            <button class="btn" onclick="getRecommendations()">🎯 Получить рекомендации</button>
+            <button class="btn" onclick="getRecommendations()">Получить рекомендации</button>
             
             <div class="stats">
-                <strong>💡 Подсказка:</strong> Популярные пользователи: 
+                <strong>Подсказка:</strong> Популярные пользователи: 
                 <a href="#" onclick="setUser(11676); return false;">11676</a> (6943 оценки), 
                 <a href="#" onclick="setUser(98391); return false;">98391</a> (5691 оценка), 
                 <a href="#" onclick="setUser(189835); return false;">189835</a> (1899 оценок)
@@ -265,7 +265,7 @@
         </div>
         
         <div class="results" id="results">
-            <h2>📚 Рекомендации для пользователя <span id="userIdDisplay"></span></h2>
+            <h2>Рекомендации для пользователя <span id="userIdDisplay"></span></h2>
             <div class="books-grid" id="booksGrid"></div>
         </div>
     </div>
@@ -342,9 +342,9 @@
                     <img src="${coverUrl}" alt="${book.title}" class="book-cover" onerror="this.src='https://via.placeholder.com/250x350/cccccc/666666?text=No+Cover'">
                     <div class="book-info">
                         <div class="book-title">${book.title}</div>
-                        <div class="book-author">✍️ ${book.author}</div>
+                        <div class="book-author">${book.author}</div>
                         <div class="book-rating">
-                            <span class="rating-value">⭐ ${book.predicted_rating}</span>
+                            <span class="rating-value">${book.predicted_rating}</span>
                             <span class="rating-label">из 10</span>
                         </div>
                     </div>

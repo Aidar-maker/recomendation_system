@@ -31,6 +31,7 @@ class BookRecommendation(BaseModel):
     title: str
     author: str
     predicted_rating: float
+    cover_url: str = None
 
 # Модель для похожих книг
 class SimilarBooksRequest(BaseModel):

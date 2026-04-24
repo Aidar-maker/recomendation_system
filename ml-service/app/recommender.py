@@ -18,7 +18,7 @@ class RecommendationEngine:
         ratings_query = "SELECT user_id, book_id, rating FROM Ratings WHERE rating IS NOT NULL"
         self.ratings_df = pd.read_sql(ratings_query, self.conn)
         
-        books_query = "SELECT book_id, title, author FROM Book"
+        books_query = "SELECT book_id, title, author, image_url FROM Book"
         self.book_data = pd.read_sql(books_query, self.conn)
     
     def _create_user_item_matrix(self):
@@ -108,17 +108,25 @@ class RecommendationEngine:
         recommendations.sort(key=lambda x: x['predicted_rating'], reverse=True)
         top_recs = recommendations[:limit]
         
-        # Добавляем информацию о книгах
+        # Добавляем информацию о книгах (ВКЛЮЧАЯ image_url)
         result = []
         for rec in top_recs:
             book_info = self.book_data[self.book_data['book_id'] == rec['book_id']]
             if not book_info.empty:
-                result.append({
+                book_result = {
                     'book_id': rec['book_id'],
                     'title': book_info.iloc[0]['title'],
                     'author': book_info.iloc[0]['author'],
                     'predicted_rating': rec['predicted_rating']
-                })
+                }
+                
+                # Добавляем обложку если есть
+                if 'image_url' in book_info.columns:
+                    book_result['cover_url'] = book_info.iloc[0]['image_url']
+                else:
+                    book_result['cover_url'] = None
+                
+                result.append(book_result)
         
         print(f"✅ Найдено {len(result)} рекомендаций")
         return result
