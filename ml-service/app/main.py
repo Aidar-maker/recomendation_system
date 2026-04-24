@@ -3,6 +3,7 @@ from fastapi import FastAPI, HTTPException, Security, Depends
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel
 from typing import List
+import pandas as pd
 from .recommender import RecommendationEngine
 
 # Инициализация FastAPI приложения
@@ -11,7 +12,7 @@ security = HTTPBearer()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Для разработки
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -38,6 +39,16 @@ class SimilarBooksRequest(BaseModel):
     book_id: int
     limit: int = 5
 
+# Модель для рекомендаций по жанрам
+class GenreRecommendationRequest(BaseModel):
+    genres: List[int]
+    limit: int = 5
+
+# Модель для ответа
+class GenreItem(BaseModel):
+    genre_id: int
+    genre_name: str
+
 # Проверка API ключа
 async def verify_token(credentials: HTTPAuthorizationCredentials = Security(security)):
     if credentials.credentials != API_KEY:
@@ -49,7 +60,7 @@ async def verify_token(credentials: HTTPAuthorizationCredentials = Security(secu
 async def health_check():
     return {"status": "ok", "service": "ml-recommender"}
 
-# Эндпоинт получения рекомендаций
+# Эндпоинт получения рекомендаций (основной)
 @app.post("/api/v1/recommend", response_model=List[BookRecommendation])
 async def get_recommendations(
     request: RecommendationRequest,
@@ -59,6 +70,17 @@ async def get_recommendations(
         engine = RecommendationEngine()
         recommendations = engine.get_user_recommendations(request.user_id, request.limit)
         return recommendations
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# Эндпоинт получения всех жанров
+@app.get("/api/v1/genres", response_model=List[GenreItem])
+async def get_genres(token: str = Depends(verify_token)):
+    try:
+        engine = RecommendationEngine()
+        query = "SELECT genre_id, genre_name FROM Genres ORDER BY genre_name"
+        df = pd.read_sql(query, engine.conn)
+        return df.to_dict('records')
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

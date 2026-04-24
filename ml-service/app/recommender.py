@@ -29,7 +29,7 @@ class RecommendationEngine:
         if self.ratings_df.empty:
             return None, None, None
         
-        # Фильтр 1: Пользователи с >= 10 оценками (было 5)
+        # Фильтр 1: Пользователи с >= 10 оценками
         user_counts = self.ratings_df['user_id'].value_counts()
         active_users = user_counts[user_counts >= 10].index.tolist()
         
@@ -128,8 +128,13 @@ class RecommendationEngine:
                 
                 result.append(book_result)
         
+        # ✅ ИСПРАВЛЕНО: Добавляем контентную фильтрацию если мало рекомендаций
+        if len(result) < limit:
+            content_recs = self.get_content_based_recommendations(user_id, limit - len(result))
+            result.extend(content_recs)
+        
         print(f"✅ Найдено {len(result)} рекомендаций")
-        return result
+        return result[:limit]
     
     def _get_popular_books(self, limit: int):
         """Возвращает популярные книги (fallback)"""
@@ -143,6 +148,7 @@ class RecommendationEngine:
         """
         df = pd.read_sql(query, self.conn, params=(limit,))
         df['predicted_rating'] = 4.5
+        df['cover_url'] = None
         return df.to_dict('records')
     
     def get_similar_books(self, book_id: int, limit: int = 5):
@@ -159,4 +165,59 @@ class RecommendationEngine:
             LIMIT %s
         """
         df = pd.read_sql(query, self.conn, params=(book_id, book_id, limit))
+        df['predicted_rating'] = 4.0
+        df['cover_url'] = None
+        return df.to_dict('records')
+    
+    def get_content_based_recommendations(self, user_id: int, limit: int = 5):
+        """
+        Контентная фильтрация по жанрам (ТЗ 2.a.v.1.a)
+        """
+        query = """
+            SELECT b.book_id, b.title, b.author, b.year_publication
+            FROM Book b
+            JOIN Book_Genres bg ON b.book_id = bg.book_id
+            JOIN User_Preferences up ON bg.genre_id = up.genre_id
+            WHERE up.user_id = %s
+            AND b.book_id NOT IN (
+                SELECT book_id FROM Ratings WHERE user_id = %s
+            )
+            GROUP BY b.book_id
+            ORDER BY COUNT(*) DESC
+            LIMIT %s
+        """
+        df = pd.read_sql(query, self.conn, params=(user_id, user_id, limit))
+        
+        if df.empty:
+            return []
+        
+        df['predicted_rating'] = 4.5
+        df['cover_url'] = None
+        return df.to_dict('records')
+    
+    def get_recommendations_by_genres(self, genre_ids: list, limit: int = 5):
+        """
+        Рекомендации по списку жанров (ТЗ 2.a.v.2.b - альтернативный вход)
+        """
+        if not genre_ids:
+            return self._get_popular_books(limit)
+        
+        placeholders = ','.join(['%s'] * len(genre_ids))
+        query = f"""
+            SELECT b.book_id, b.title, b.author, COUNT(*) as genre_match
+            FROM Book b
+            JOIN Book_Genres bg ON b.book_id = bg.book_id
+            WHERE bg.genre_id IN ({placeholders})
+            GROUP BY b.book_id
+            ORDER BY genre_match DESC, b.title
+            LIMIT %s
+        """
+        params = genre_ids + [limit]
+        df = pd.read_sql(query, self.conn, params=params)
+        
+        if df.empty:
+            return self._get_popular_books(limit)
+        
+        df['predicted_rating'] = 4.0
+        df['cover_url'] = None
         return df.to_dict('records')
