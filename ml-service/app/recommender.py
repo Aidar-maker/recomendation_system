@@ -5,7 +5,7 @@ from .database import get_db_connection
 
 class RecommendationEngine:
     """
-    Движок рекомендаций (ОПТИМИЗИРОВАННЫЙ)
+    Движок рекомендаций
     """
     
     def __init__(self):
@@ -16,28 +16,22 @@ class RecommendationEngine:
     def load_data(self):
         """Загружает данные из БД"""
         ratings_query = "SELECT user_id, book_id, rating FROM Ratings WHERE rating IS NOT NULL"
-        self.ratings_df = pd.read_sql(ratings_query, self.conn)
+        self.ratings_df = pd.read_sql_query(ratings_query, self.conn)
         
         books_query = "SELECT book_id, title, author, image_url FROM Book"
-        self.book_data = pd.read_sql(books_query, self.conn)
+        self.book_data = pd.read_sql_query(books_query, self.conn)
     
     def _create_user_item_matrix(self):
-        """
-        Создаёт матрицу пользователь × книга
-        СИЛЬНО фильтруем для уменьшения размера
-        """
+        """Создаёт матрицу пользователь × книга"""
         if self.ratings_df.empty:
             return None, None, None
         
-        # Фильтр 1: Пользователи с >= 10 оценками
         user_counts = self.ratings_df['user_id'].value_counts()
         active_users = user_counts[user_counts >= 10].index.tolist()
         
-        # Фильтр 2: Книги с >= 5 оценками
         book_counts = self.ratings_df['book_id'].value_counts()
         active_books = book_counts[book_counts >= 5].index.tolist()
         
-        # Фильтруем
         filtered_ratings = self.ratings_df[
             (self.ratings_df['user_id'].isin(active_users)) &
             (self.ratings_df['book_id'].isin(active_books))
@@ -48,7 +42,6 @@ class RecommendationEngine:
         if filtered_ratings.empty:
             return None, None, None
         
-        # Pivot таблица
         matrix = filtered_ratings.pivot_table(
             index='user_id', 
             columns='book_id', 
@@ -59,9 +52,7 @@ class RecommendationEngine:
         return matrix, matrix.index.tolist(), matrix.columns.tolist()
     
     def get_user_recommendations(self, user_id: int, limit: int = 5):
-        """
-        Генерирует персональные рекомендации
-        """
+        """Генерирует персональные рекомендации"""
         self.load_data()
         
         if self.ratings_df.empty:
@@ -69,12 +60,10 @@ class RecommendationEngine:
         
         matrix, users, books = self._create_user_item_matrix()
         
-        # Если матрица не создалась или пользователь не найден
         if matrix is None or user_id not in users:
             print(f"⚠️  Пользователь {user_id} не найден, возвращаем популярные")
             return self._get_popular_books(limit)
         
-        # NMF с МЕНЬШИМ количеством компонентов
         n_components = min(10, len(users) - 1, len(books) - 1)
         print(f"🔧 NMF компонентов: {n_components}")
         
@@ -83,20 +72,17 @@ class RecommendationEngine:
             user_factors = model.fit_transform(matrix)
             item_factors = model.components_
             
-            # Предсказание
             user_idx = users.index(user_id)
             predictions = np.dot(user_factors[user_idx], item_factors)
             
         except Exception as e:
-            print(f"❌ NMF ошибка: {e}")
+            print(f"NMF ошибка: {e}")
             return self._get_popular_books(limit)
         
-        # Исключаем прочитанные
         rated_books = set(self.ratings_df[
             self.ratings_df['user_id'] == user_id
         ]['book_id'].values)
         
-        # Формируем рекомендации
         recommendations = []
         for idx, book_id in enumerate(books):
             if book_id not in rated_books:
@@ -108,7 +94,6 @@ class RecommendationEngine:
         recommendations.sort(key=lambda x: x['predicted_rating'], reverse=True)
         top_recs = recommendations[:limit]
         
-        # Добавляем информацию о книгах (ВКЛЮЧАЯ image_url)
         result = []
         for rec in top_recs:
             book_info = self.book_data[self.book_data['book_id'] == rec['book_id']]
@@ -120,7 +105,6 @@ class RecommendationEngine:
                     'predicted_rating': rec['predicted_rating']
                 }
                 
-                # Добавляем обложку если есть
                 if 'image_url' in book_info.columns:
                     book_result['cover_url'] = book_info.iloc[0]['image_url']
                 else:
@@ -128,16 +112,15 @@ class RecommendationEngine:
                 
                 result.append(book_result)
         
-        # ✅ ИСПРАВЛЕНО: Добавляем контентную фильтрацию если мало рекомендаций
         if len(result) < limit:
             content_recs = self.get_content_based_recommendations(user_id, limit - len(result))
             result.extend(content_recs)
         
-        print(f"✅ Найдено {len(result)} рекомендаций")
+        print(f"Найдено {len(result)} рекомендаций")
         return result[:limit]
     
     def _get_popular_books(self, limit: int):
-        """Возвращает популярные книги (fallback)"""
+        """Возвращает популярные книги"""
         query = """
             SELECT b.book_id, b.title, b.author, COUNT(r.rating) as cnt
             FROM Book b
@@ -146,7 +129,7 @@ class RecommendationEngine:
             ORDER BY cnt DESC
             LIMIT %s
         """
-        df = pd.read_sql(query, self.conn, params=(limit,))
+        df = pd.read_sql_query(query, self.conn, params=(limit,))
         df['predicted_rating'] = 4.5
         df['cover_url'] = None
         return df.to_dict('records')
@@ -154,27 +137,25 @@ class RecommendationEngine:
     def get_similar_books(self, book_id: int, limit: int = 5):
         """Возвращает похожие книги через жанры"""
         query = """
-            SELECT b2.book_id, b2.title, b2.author
+            SELECT DISTINCT b2.book_id, b2.title, b2.author
             FROM Book b1
             JOIN Book_Genres bg1 ON b1.book_id = bg1.book_id
             JOIN Book_Genres bg2 ON bg1.genre_id = bg2.genre_id
             JOIN Book b2 ON bg2.book_id = b2.book_id
             WHERE b1.book_id = %s AND b2.book_id != %s
-            GROUP BY b2.book_id
+            GROUP BY b2.book_id, b2.title, b2.author
             ORDER BY COUNT(*) DESC
             LIMIT %s
         """
-        df = pd.read_sql(query, self.conn, params=(book_id, book_id, limit))
+        df = pd.read_sql_query(query, self.conn, params=(book_id, book_id, limit))
         df['predicted_rating'] = 4.0
         df['cover_url'] = None
         return df.to_dict('records')
     
     def get_content_based_recommendations(self, user_id: int, limit: int = 5):
-        """
-        Контентная фильтрация по жанрам (ТЗ 2.a.v.1.a)
-        """
+        """Контентная фильтрация по жанрам"""
         query = """
-            SELECT b.book_id, b.title, b.author, b.year_publication
+            SELECT DISTINCT b.book_id, b.title, b.author
             FROM Book b
             JOIN Book_Genres bg ON b.book_id = bg.book_id
             JOIN User_Preferences up ON bg.genre_id = up.genre_id
@@ -182,11 +163,11 @@ class RecommendationEngine:
             AND b.book_id NOT IN (
                 SELECT book_id FROM Ratings WHERE user_id = %s
             )
-            GROUP BY b.book_id
+            GROUP BY b.book_id, b.title, b.author
             ORDER BY COUNT(*) DESC
             LIMIT %s
         """
-        df = pd.read_sql(query, self.conn, params=(user_id, user_id, limit))
+        df = pd.read_sql_query(query, self.conn, params=(user_id, user_id, limit))
         
         if df.empty:
             return []
@@ -197,27 +178,50 @@ class RecommendationEngine:
     
     def get_recommendations_by_genres(self, genre_ids: list, limit: int = 5):
         """
-        Рекомендации по списку жанров (ТЗ 2.a.v.2.b - альтернативный вход)
+        Рекомендации по списку жанров (ИСПРАВЛЕНО!)
         """
         if not genre_ids:
+            print("Нет жанров, возвращаем популярные")
             return self._get_popular_books(limit)
         
-        placeholders = ','.join(['%s'] * len(genre_ids))
-        query = f"""
-            SELECT b.book_id, b.title, b.author, COUNT(*) as genre_match
-            FROM Book b
-            JOIN Book_Genres bg ON b.book_id = bg.book_id
-            WHERE bg.genre_id IN ({placeholders})
-            GROUP BY b.book_id
-            ORDER BY genre_match DESC, b.title
-            LIMIT %s
-        """
-        params = genre_ids + [limit]
-        df = pd.read_sql(query, self.conn, params=params)
-        
-        if df.empty:
+        try:
+            # Создаем плейсхолдеры: %s,%s,%s
+            placeholders = ','.join(['%s'] * len(genre_ids))
+            
+            query = f"""
+                SELECT DISTINCT b.book_id, b.title, b.author,
+                       COUNT(DISTINCT bg.genre_id) as match_count
+                FROM Book b
+                JOIN Book_Genres bg ON b.book_id = bg.book_id
+                WHERE bg.genre_id IN ({placeholders})
+                GROUP BY b.book_id, b.title, b.author
+                ORDER BY match_count DESC, b.title
+                LIMIT %s
+            """
+            
+            
+            params = tuple(genre_ids) + (limit,)
+            
+            print(f"Жанры: {genre_ids}")
+            print(f"Параметры: {params}")
+            
+            df = pd.read_sql_query(query, self.conn, params=params)
+            
+            print(f"Найдено {len(df)} книг")
+            
+            if df.empty:
+                print("⚠️  Книги не найдены")
+                return self._get_popular_books(limit)
+            
+            df['predicted_rating'] = 4.0
+            df['cover_url'] = None
+            
+            result = df.to_dict('records')
+            print(f"Возвращаем {len(result)} рекомендаций")
+            return result
+            
+        except Exception as e:
+            print(f"Ошибка: {e}")
+            import traceback
+            traceback.print_exc()
             return self._get_popular_books(limit)
-        
-        df['predicted_rating'] = 4.0
-        df['cover_url'] = None
-        return df.to_dict('records')

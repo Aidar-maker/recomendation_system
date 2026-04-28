@@ -296,11 +296,11 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>📚 Книжный Советник</h1>
+            <h1>Книжный Советник</h1>
             <p>Система рекомендаций книг на основе машинного обучения</p>
         </div>
         
-        <!-- Секция 1: Персональные рекомендации по пользователю -->
+        <!-- Персональные рекомендации по пользователю -->
         <div class="form-section">
             <h2>👤 Персональные рекомендации (по истории оценок)</h2>
             
@@ -314,10 +314,10 @@
                 <input type="number" id="limit" placeholder="5-10" value="5" min="1" max="20">
             </div>
             
-            <button class="btn" onclick="getRecommendations()">🎯 Получить рекомендации</button>
+            <button class="btn" onclick="getRecommendations()">Получить рекомендации</button>
             
             <div class="stats">
-                <strong>💡 Подсказка:</strong> Популярные пользователи: 
+                <strong>Подсказка:</strong> Популярные пользователи: 
                 <a href="#" onclick="setUser(11676); return false;">11676</a> (6943 оценки), 
                 <a href="#" onclick="setUser(98391); return false;">98391</a> (5691 оценка), 
                 <a href="#" onclick="setUser(189835); return false;">189835</a> (1899 оценок)
@@ -326,9 +326,9 @@
             <div class="error" id="error"></div>
         </div>
         
-        <!-- Секция 2: Рекомендации по жанрам -->
+        <!-- Рекомендации по жанрам -->
         <div class="form-section">
-            <h2>🎭 Рекомендации по жанрам (для новых пользователей)</h2>
+            <h2>Рекомендации по жанрам (для новых пользователей)</h2>
             
             <div class="form-group">
                 <label>Выберите предпочитаемые жанры:</label>
@@ -343,7 +343,7 @@
                 <input type="number" id="genreLimit" placeholder="5-10" value="5" min="1" max="20">
             </div>
             
-            <button class="btn" onclick="getRecommendationsByGenres()">🎯 Получить рекомендации по жанрам</button>
+            <button class="btn" onclick="getRecommendationsByGenres()">Получить рекомендации по жанрам</button>
             
             <div class="error" id="genreError"></div>
         </div>
@@ -356,13 +356,13 @@
         
         <!-- Результаты персонализации -->
         <div class="results" id="results">
-            <h2>📚 Рекомендации для пользователя <span id="userIdDisplay"></span></h2>
+            <h2>Рекомендации для пользователя <span id="userIdDisplay"></span></h2>
             <div class="books-grid" id="booksGrid"></div>
         </div>
         
         <!-- Результаты по жанрам -->
         <div class="results" id="genreResults">
-            <h2>📚 Рекомендации по выбранным жанрам</h2>
+            <h2>Рекомендации по выбранным жанрам</h2>
             <div class="books-grid" id="genreBooksGrid"></div>
         </div>
     </div>
@@ -529,9 +529,9 @@
                     <img src="${coverUrl}" alt="${book.title}" class="book-cover" onerror="this.src='https://via.placeholder.com/250x350/cccccc/666666?text=No+Cover'">
                     <div class="book-info">
                         <div class="book-title">${book.title}</div>
-                        <div class="book-author">✍️ ${book.author}</div>
+                        <div class="book-author"> ${book.author}</div>
                         <div class="book-rating">
-                            <span class="rating-value">⭐ ${book.predicted_rating}</span>
+                            <span class="rating-value"> ${book.predicted_rating}</span>
                             <span class="rating-label">из 10</span>
                         </div>
                     </div>
@@ -564,9 +564,9 @@
                     <img src="${coverUrl}" alt="${book.title}" class="book-cover" onerror="this.src='https://via.placeholder.com/250x350/cccccc/666666?text=No+Cover'">
                     <div class="book-info">
                         <div class="book-title">${book.title}</div>
-                        <div class="book-author">✍️ ${book.author}</div>
+                        <div class="book-author">${book.author}</div>
                         <div class="book-rating">
-                            <span class="rating-value">⭐ ${book.predicted_rating}</span>
+                            <span class="rating-value">${book.predicted_rating}</span>
                             <span class="rating-label">из 10</span>
                         </div>
                     </div>
