@@ -61,7 +61,7 @@ class RecommendationEngine:
         matrix, users, books = self._create_user_item_matrix()
         
         if matrix is None or user_id not in users:
-            print(f"⚠️  Пользователь {user_id} не найден, возвращаем популярные")
+            print(f"Пользователь {user_id} не найден, возвращаем популярные")
             return self._get_popular_books(limit)
         
         n_components = min(10, len(users) - 1, len(books) - 1)
