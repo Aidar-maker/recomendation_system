@@ -5,7 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Book;
 use App\Models\Rating;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Auth;
 
 class BookController extends Controller
 {
@@ -34,7 +34,15 @@ class BookController extends Controller
         $book = Book::findOrFail($id);
         $genres = $book->genres;
         
-        return view('books.show', compact('book', 'genres'));
+        // Проверяем, оценил ли пользователь эту книгу
+        $userRating = null;
+        if (Auth::check()) {
+            $userRating = Rating::where('user_id', Auth::id())
+                ->where('book_id', $id)
+                ->first();
+        }
+        
+        return view('books.show', compact('book', 'genres', 'userRating'));
     }
 
     // Оценка книги
@@ -44,9 +52,13 @@ class BookController extends Controller
             'rating' => 'required|integer|min:1|max:10'
         ]);
 
-        $userId = auth()->id();
+        if (!Auth::check()) {
+            return redirect()->route('login')
+                ->with('error', 'Пожалуйста, войдите в систему');
+        }
+
+        $userId = Auth::id();
         
-        // Обновляем или создаём оценку
         Rating::updateOrCreate(
             ['user_id' => $userId, 'book_id' => $bookId],
             [

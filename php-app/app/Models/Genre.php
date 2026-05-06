@@ -8,9 +8,13 @@ class Genre extends Model
 {
     protected $table = 'Genres';
     protected $primaryKey = 'genre_id';
+    public $incrementing = false;
     public $timestamps = false;
 
-    protected $fillable = ['genre_id', 'genre_name'];
+    protected $fillable = [
+        'genre_id',
+        'genre_name'
+    ];
 
     public function books()
     {

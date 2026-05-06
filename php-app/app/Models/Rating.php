@@ -7,11 +7,16 @@ use Illuminate\Database\Eloquent\Model;
 class Rating extends Model
 {
     protected $table = 'Ratings';
+    protected $primaryKey = ['user_id', 'book_id'];
     public $incrementing = false;
     public $timestamps = false;
-    protected $primaryKey = ['user_id', 'book_id'];
 
-    protected $fillable = ['user_id', 'book_id', 'rating', 'rated_at'];
+    protected $fillable = [
+        'user_id',
+        'book_id',
+        'rating',
+        'rated_at'
+    ];
 
     public function user()
     {
