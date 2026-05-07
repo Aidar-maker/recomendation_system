@@ -28,6 +28,11 @@ class User extends Authenticatable
         'password',
     ];
 
+    public function username()
+    {
+        return 'login';
+    }
+
     protected function casts(): array
     {
         return [
