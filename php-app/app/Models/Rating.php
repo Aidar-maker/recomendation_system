@@ -12,10 +12,7 @@ class Rating extends Model
     public $timestamps = false;
 
     protected $fillable = [
-        'user_id',
-        'book_id',
-        'rating',
-        'rated_at'
+        'user_id', 'book_id', 'rating', 'rated_at'
     ];
 
     public function user()

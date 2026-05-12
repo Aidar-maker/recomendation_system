@@ -8,17 +8,12 @@ class Book extends Model
 {
     protected $table = 'Book';
     protected $primaryKey = 'book_id';
-    public $incrementing = false;
+    public $incrementing = true;
     public $timestamps = false;
 
     protected $fillable = [
-        'book_id',
-        'isbn',
-        'title',
-        'author',
-        'year_publication',
-        'publisher',
-        'image_url'
+        'isbn', 'title', 'author', 'year_publication', 
+        'publisher', 'image_url'
     ];
 
     public function ratings()

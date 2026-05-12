@@ -6,6 +6,7 @@ use App\Models\Book;
 use App\Models\Rating;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 class BookController extends Controller
 {
@@ -23,7 +24,7 @@ class BookController extends Controller
             });
         }
         
-        $books = $query->paginate(20);
+        $books = $query->paginate(24);
         
         return view('books.index', compact('books'));
     }
@@ -34,7 +35,7 @@ class BookController extends Controller
         $book = Book::findOrFail($id);
         $genres = $book->genres;
         
-        // Проверяем, оценил ли пользователь эту книгу
+        // Оценка текущего пользователя
         $userRating = null;
         if (Auth::check()) {
             $userRating = Rating::where('user_id', Auth::id())
@@ -42,7 +43,11 @@ class BookController extends Controller
                 ->first();
         }
         
-        return view('books.show', compact('book', 'genres', 'userRating'));
+        // Средний рейтинг книги
+        $averageRating = Rating::where('book_id', $id)
+            ->avg('rating');
+        
+        return view('books.show', compact('book', 'genres', 'userRating', 'averageRating'));
     }
 
     // Оценка книги
@@ -57,10 +62,8 @@ class BookController extends Controller
                 ->with('error', 'Пожалуйста, войдите в систему');
         }
 
-        $userId = Auth::id();
-        
         Rating::updateOrCreate(
-            ['user_id' => $userId, 'book_id' => $bookId],
+            ['user_id' => Auth::id(), 'book_id' => $bookId],
             [
                 'rating' => $request->rating,
                 'rated_at' => now()

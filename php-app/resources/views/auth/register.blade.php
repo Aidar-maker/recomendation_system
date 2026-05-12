@@ -2,40 +2,38 @@
     <form method="POST" action="{{ route('register') }}">
         @csrf
 
-        <!-- Name -->
+        <!-- Login -->
         <div>
-            <x-input-label for="name" :value="__('Name')" />
-            <x-text-input id="name" class="block mt-1 w-full" type="text" name="name" :value="old('name')" required autofocus autocomplete="name" />
-            <x-input-error :messages="$errors->get('name')" class="mt-2" />
+            <x-input-label for="login" :value="__('Логин')" />
+            <x-text-input id="login" name="login" type="text" class="mt-1 block w-full" :value="old('login')" required autofocus autocomplete="username" />
+            <x-input-error :messages="$errors->get('login')" class="mt-2" />
         </div>
 
-        <!-- Email Address -->
+        <!-- Age -->
         <div class="mt-4">
-            <x-input-label for="email" :value="__('Email')" />
-            <x-text-input id="email" class="block mt-1 w-full" type="email" name="email" :value="old('email')" required autocomplete="username" />
-            <x-input-error :messages="$errors->get('email')" class="mt-2" />
+            <x-input-label for="age" :value="__('Возраст')" />
+            <x-text-input id="age" name="age" type="number" class="mt-1 block w-full" :value="old('age')" required autocomplete="age" />
+            <x-input-error :messages="$errors->get('age')" class="mt-2" />
+        </div>
+
+        <!-- Location -->
+        <div class="mt-4">
+            <x-input-label for="location" :value="__('Город')" />
+            <x-text-input id="location" name="location" type="text" class="mt-1 block w-full" :value="old('location')" autocomplete="location" />
+            <x-input-error :messages="$errors->get('location')" class="mt-2" />
         </div>
 
         <!-- Password -->
         <div class="mt-4">
-            <x-input-label for="password" :value="__('Password')" />
-
-            <x-text-input id="password" class="block mt-1 w-full"
-                            type="password"
-                            name="password"
-                            required autocomplete="new-password" />
-
+            <x-input-label for="password" :value="__('Пароль')" />
+            <x-text-input id="password" name="password" type="password" class="mt-1 block w-full" required autocomplete="new-password" />
             <x-input-error :messages="$errors->get('password')" class="mt-2" />
         </div>
 
         <!-- Confirm Password -->
         <div class="mt-4">
-            <x-input-label for="password_confirmation" :value="__('Confirm Password')" />
-
-            <x-text-input id="password_confirmation" class="block mt-1 w-full"
-                            type="password"
-                            name="password_confirmation" required autocomplete="new-password" />
-
+            <x-input-label for="password_confirmation" :value="__('Подтвердите пароль')" />
+            <x-text-input id="password_confirmation" name="password_confirmation" type="password" class="mt-1 block w-full" required autocomplete="new-password" />
             <x-input-error :messages="$errors->get('password_confirmation')" class="mt-2" />
         </div>
 

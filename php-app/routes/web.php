@@ -3,31 +3,44 @@
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\BookController;
 use App\Http\Controllers\RecommendationController;
-use App\Http\Controllers\Auth\LoginController;
+use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Auth;
+use App\Models\User;  
 
-// Главная страница
+// Главная страница с книгами
 Route::get('/', [HomeController::class, 'index'])->name('home');
 
-// Маршруты для входа
-Route::middleware(['guest'])->group(function () {
-    Route::get('/login', [LoginController::class, 'showLoginForm'])->name('login');
-    Route::post('/login', [LoginController::class, 'login']);
-});
+// Каталог книг
+Route::get('/books', [BookController::class, 'index'])->name('books.index');
+Route::get('/books/{id}', [BookController::class, 'show'])->name('books.show');
+Route::post('/books/{id}/rate', [BookController::class, 'rate'])->name('books.rate');
 
-// Маршруты требующие авторизации
+// Рекомендации (требуют авторизации)
 Route::middleware(['auth'])->group(function () {
-    
-    Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
-    // Книги
-    Route::get('/books', [BookController::class, 'index'])->name('books.index');
-    Route::get('/books/{id}', [BookController::class, 'show'])->name('books.show');
-    Route::post('/books/{id}/rate', [BookController::class, 'rate'])->name('books.rate');
-    
-    // Рекомендации
     Route::get('/recommendations', [RecommendationController::class, 'index'])->name('recommendations.index');
     Route::post('/recommendations/genres', [RecommendationController::class, 'byGenres'])->name('recommendations.byGenres');
+    Route::get('/profile', function () {
+        return view('profile.edit', [
+            'user' => Auth::user()
+        ]);
+    })->name('profile.edit');
 });
 
-// Маршруты аутентификации (Breeze)
+// Убираем стандартный dashboard или перенаправляем на главную
+Route::get('/dashboard', function () {
+    return redirect()->route('home');
+});
+
+Route::get('/test-login', function() {
+    $user = App\Models\User::where('login', 'testuser123')->first();
+    
+    if ($user) {
+        Auth::login($user);
+        return "Logged in as: " . Auth::user()->login;
+    }
+    
+    return "User not found";
+});
+
 require __DIR__.'/auth.php';

@@ -9,8 +9,8 @@ class HomeController extends Controller
 {
     public function index()
     {
-        // Получаем несколько популярных книг для главной
-        $books = Book::limit(6)->get();
+        // Получаем 12 случайных книг для главной страницы
+        $books = Book::inRandomOrder()->limit(12)->get();
         
         return view('home', compact('books'));
     }
