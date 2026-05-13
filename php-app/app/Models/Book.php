@@ -12,8 +12,12 @@ class Book extends Model
     public $timestamps = false;
 
     protected $fillable = [
-        'isbn', 'title', 'author', 'year_publication', 
-        'publisher', 'image_url'
+        'isbn',
+        'title',
+        'author',
+        'year_publication',
+        'publisher',
+        'image_url'
     ];
 
     public function ratings()

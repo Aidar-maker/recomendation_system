@@ -35,8 +35,4 @@ return [
         ],
     ],
 
-    'ml_service' => [
-    'url' => env('ML_SERVICE_URL', 'http://localhost:8000'),
-    'api_key' => env('ML_API_KEY', 'secret-ml-api-key-2024'),
-    ],
 ];
