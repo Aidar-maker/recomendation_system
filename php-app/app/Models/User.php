@@ -26,13 +26,14 @@ class User extends Authenticatable
     public $incrementing = true;
     public $timestamps = false;
     protected $fillable = [
+        'name',
+        'email',
         'login',
         'password_hash',
         'age',
         'location',
         'created_at'
     ];
-
     /**
      * The attributes that should be hidden for serialization.
      *
