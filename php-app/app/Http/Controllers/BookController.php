@@ -33,7 +33,9 @@ class BookController extends Controller
         
         $userRating = null;
         if (Auth::check()) {
-            $userRating = Rating::where('user_id', Auth::id())
+            $userId = Auth::user()->user_id;
+            
+            $userRating = Rating::where('user_id', $userId)
                 ->where('book_id', $id)
                 ->first();
         }
@@ -54,8 +56,11 @@ class BookController extends Controller
                 ->with('error', 'Пожалуйста, войдите в систему');
         }
 
+        // Используем user_id из модели
+        $userId = Auth::user()->user_id;
+
         Rating::updateOrCreate(
-            ['user_id' => Auth::id(), 'book_id' => $bookId],
+            ['user_id' => $userId, 'book_id' => $bookId],
             [
                 'rating' => $request->rating,
                 'rated_at' => now()

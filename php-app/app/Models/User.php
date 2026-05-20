@@ -41,10 +41,6 @@ class User extends Authenticatable
         return $this->password_hash;
     }
 
-    public function getAuthIdentifierName()
-    {
-        return 'login';
-    }
 
     public function ratings()
     {

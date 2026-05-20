@@ -40,10 +40,13 @@ services:
       - book-network
 
   ml-service:
-    build: ./ml-service
+    build: 
+      context: ./ml-service
+      dockerfile: Dockerfile
     container_name: book_ml
     ports:
       - "8000:8000"
+      - "8001:8000"
     depends_on:
       db:
         condition: service_healthy
@@ -52,6 +55,10 @@ services:
       API_KEY: secret-ml-api-key-2024
     networks:
       - book-network
+    depends_on:
+      - db
+    networks:
+      - book_network
 
   redis:
     image: redis:alpine
