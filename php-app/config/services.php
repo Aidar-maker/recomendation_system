@@ -35,4 +35,9 @@ return [
         ],
     ],
 
+    'ml_api' => [
+        'url' => env('ML_API_URL', 'http://ml-recommender:8000'),
+        'key' => env('ML_API_KEY', 'secret-ml-api-key-2024'),
+    ],
+
 ];

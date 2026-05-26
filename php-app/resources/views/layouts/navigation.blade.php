@@ -19,6 +19,10 @@
                     <x-nav-link :href="route('books.index')" :active="request()->routeIs('books.index')">
                         {{ __('Каталог') }}
                     </x-nav-link>
+
+                    <x-nav-link :href="route('recommendations.index')" :active="request()->routeIs('recommendations.index')">
+                        {{ __('Рекомендации') }}
+                    </x-nav-link>
                 </div>
             </div>
 
@@ -86,6 +90,11 @@
             <x-responsive-nav-link :href="route('books.index')" :active="request()->routeIs('books.index')">
                 {{ __('Каталог') }}
             </x-responsive-nav-link>
+
+            <x-responsive-nav-link :href="route('recommendations.index')" :active="request()->routeIs('recommendations.index')">
+                {{ __('Рекомендации') }}
+            </x-responsive-nav-link>
+
         </div>
 
         <!-- Responsive Settings Options -->
