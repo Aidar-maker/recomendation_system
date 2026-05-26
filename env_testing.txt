@@ -1,6 +1,6 @@
-APP_NAME=Laravel
+APP_NAME="BookMania"
 APP_ENV=local
-APP_KEY=base64:oHeiko8MTMoJBSmMfxPEi2O9hPasuI3nG3UaH4dATwE=
+APP_KEY=base64:OCtM6NXu9ujz3XadG19mBGivG675pttJC2khNRMb9ag=
 APP_DEBUG=true
 APP_URL=http://localhost:8000
 
@@ -21,7 +21,7 @@ LOG_DEPRECATIONS_CHANNEL=null
 LOG_LEVEL=debug
 
 DB_CONNECTION=mysql
-DB_HOST=host.docker.internal
+DB_HOST=127.0.0.1
 DB_PORT=3306
 DB_DATABASE=book_recommender
 DB_USERNAME=root
@@ -35,9 +35,10 @@ SESSION_DOMAIN=null
 
 BROADCAST_CONNECTION=log
 FILESYSTEM_DISK=local
-QUEUE_CONNECTION=database
+QUEUE_CONNECTION=sync
 
-# CACHE_STORE=database
+CACHE_STORE=file
+CACHE_DRIVER=file
 # CACHE_PREFIX=
 
 MEMCACHED_HOST=127.0.0.1
@@ -64,8 +65,6 @@ AWS_USE_PATH_STYLE_ENDPOINT=false
 
 VITE_APP_NAME="${APP_NAME}"
 
-ML_SERVICE_URL=http://ml-service:8000
+ML_SERVICE_URL=http://localhost:8000
 ML_API_KEY=secret-ml-api-key-2024
-
-CACHE_DRIVER=file
-CACHE_STORE=file
+ML_API_URL=http://ml-recommender:8000
