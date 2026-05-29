@@ -5,7 +5,6 @@
 @section('content')
 <div class="min-h-screen bg-white">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <!-- Хлебные крошки -->
         <nav class="text-sm text-gray-500 mb-6">
             <a href="{{ route('books.index') }}" class="hover:text-indigo-600">Каталог</a>
             <span class="mx-2">/</span>
@@ -13,31 +12,74 @@
         </nav>
 
         <div class="flex gap-8">
-            <!-- Левая колонка -->
             <div class="w-80 flex-shrink-0">
-                <!-- Обложка -->
                 <div class="bg-white rounded-lg shadow-lg overflow-hidden mb-4">
                     <div class="aspect-[2/3] bg-gray-100 flex items-center justify-center">
                         @if($book->image_url && file_exists(public_path($book->image_url)))
                             <img src="{{ asset($book->image_url) }}" alt="{{ $book->title }}" class="w-full h-full object-cover">
                         @else
                             <svg class="w-20 h-20 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
                             </svg>
                         @endif
                     </div>
                 </div>
                 
-                <!-- Кнопка избранного -->
-                <button class="w-full bg-white border border-gray-300 text-gray-700 py-2 px-4 rounded-lg mb-4 hover:border-indigo-500 hover:text-indigo-600 transition flex items-center justify-center gap-2">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path>
-                    </svg>
-                    Добавить в избранное
-                </button>
+                @auth
+                <div class="bg-white rounded-lg shadow p-4 mb-4">
+                    <h3 class="font-semibold text-gray-800 mb-3 text-sm">Мой статус</h3>
+                    
+                    <div class="flex flex-wrap gap-2">
+                        <button onclick="setBookStatus('reading')" 
+                                class="status-btn px-3 py-1.5 rounded-lg text-sm transition
+                                       {{ $userStatus && $userStatus->status == 'reading' ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200' }}">
+                            Читаю
+                        </button>
+                        
+                        <button onclick="setBookStatus('completed')" 
+                                class="status-btn px-3 py-1.5 rounded-lg text-sm transition
+                                       {{ $userStatus && $userStatus->status == 'completed' ? 'bg-green-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200' }}">
+                            Прочитано
+                        </button>
+                        
+                        <button onclick="setBookStatus('abandoned')" 
+                                class="status-btn px-3 py-1.5 rounded-lg text-sm transition
+                                       {{ $userStatus && $userStatus->status == 'abandoned' ? 'bg-red-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200' }}">
+                            Заброшено
+                        </button>
+                        
+                        <button onclick="setBookStatus('planned')" 
+                                class="status-btn px-3 py-1.5 rounded-lg text-sm transition
+                                       {{ $userStatus && $userStatus->status == 'planned' ? 'bg-yellow-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200' }}">
+                            В планах
+                        </button>
+                        
+                        <button onclick="setBookStatus('favorite')" 
+                                class="status-btn px-3 py-1.5 rounded-lg text-sm transition
+                                       {{ $userStatus && $userStatus->status == 'favorite' ? 'bg-pink-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200' }}">
+                            Любимые
+                        </button>
+                    </div>
+                </div>
 
-                <!-- Дополнительная информация -->
                 <div class="bg-white rounded-lg shadow p-4">
+                    <h3 class="font-semibold text-gray-800 mb-2 text-sm">Оценить книгу</h3>
+                    <form action="{{ route('books.rate', $book->book_id) }}" method="POST">
+                        @csrf
+                        <select name="rating" class="w-full border-gray-300 rounded-md text-sm mb-2">
+                            <option value="">Выберите оценку</option>
+                            @for($i = 1; $i <= 10; $i++)
+                                <option value="{{ $i }}" {{ $userRating && $userRating->rating == $i ? 'selected' : '' }}>{{ $i }}</option>
+                            @endfor
+                        </select>
+                        <button type="submit" class="w-full bg-indigo-600 text-white py-1.5 rounded-md hover:bg-indigo-700 transition text-sm font-medium">
+                            Сохранить
+                        </button>
+                    </form>
+                </div>
+                @endauth
+
+                <div class="bg-white rounded-lg shadow p-4 mt-4">
                     <h3 class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">Дополнительная информация</h3>
                     
                     <div class="space-y-2 text-sm">
@@ -63,37 +105,9 @@
                         @endif
                     </div>
                 </div>
-
-                <!-- Блок оценки -->
-                @auth
-                <div class="bg-white rounded-lg shadow p-4 mt-4">
-                    @if($userRating)
-                        <div class="text-center">
-                            <span class="text-gray-500 text-sm">Ваша оценка</span>
-                            <div class="text-2xl font-bold text-indigo-600 mt-1">{{ $userRating->rating }}<span class="text-base text-gray-400">/10</span></div>
-                        </div>
-                    @else
-                        <h3 class="font-semibold text-gray-800 mb-2 text-sm">Оцените книгу</h3>
-                        <form action="{{ route('books.rate', $book->book_id) }}" method="POST">
-                            @csrf
-                            <select name="rating" class="w-full border-gray-300 rounded-md text-sm mb-2">
-                                <option value="">Выберите оценку</option>
-                                @for($i = 1; $i <= 10; $i++)
-                                    <option value="{{ $i }}">{{ $i }}</option>
-                                @endfor
-                            </select>
-                            <button type="submit" class="w-full bg-indigo-600 text-white py-1.5 rounded-md hover:bg-indigo-700 transition text-sm font-medium">
-                                Оценить
-                            </button>
-                        </form>
-                    @endif
-                </div>
-                @endauth
             </div>
 
-            <!-- Правая колонка -->
             <div class="flex-1">
-                <!-- Заголовок и описание -->
                 <div class="mb-8">
                     <h1 class="text-3xl font-bold text-gray-900 mb-2">{{ $book->title }}</h1>
                     <p class="text-lg text-gray-600 mb-4">{{ $book->author }}</p>
@@ -114,9 +128,8 @@
                     </div>
                 </div>
 
-                <!-- Похожие книги -->
                 <div>
-                    <h2 class="text-xl font-bold text-gray-900 mb-4">Похожее на то что вы читали</h2>
+                    <h2 class="text-xl font-bold text-gray-900 mb-4">Похожие книги</h2>
                     <div class="grid grid-cols-5 gap-4">
                         @for($i = 1; $i <= 5; $i++)
                         <div class="bg-white rounded-lg shadow p-3 hover:shadow-md transition cursor-pointer">
@@ -135,4 +148,43 @@
         </div>
     </div>
 </div>
+
+@auth
+<script>
+function setBookStatus(status) {
+    fetch('{{ route("books.set-status", $book->book_id) }}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': '{{ csrf_token() }}'
+        },
+        body: JSON.stringify({ status: status })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            document.querySelectorAll('.status-btn').forEach(btn => {
+                btn.classList.remove('bg-indigo-600', 'bg-green-600', 'bg-red-600', 'bg-yellow-600', 'bg-pink-600', 'text-white');
+                btn.classList.add('bg-gray-100', 'text-gray-700');
+            });
+            
+            const activeBtn = event.target;
+            activeBtn.classList.remove('bg-gray-100', 'text-gray-700');
+            
+            if (status === 'reading') activeBtn.classList.add('bg-indigo-600', 'text-white');
+            else if (status === 'completed') activeBtn.classList.add('bg-green-600', 'text-white');
+            else if (status === 'abandoned') activeBtn.classList.add('bg-red-600', 'text-white');
+            else if (status === 'planned') activeBtn.classList.add('bg-yellow-600', 'text-white');
+            else if (status === 'favorite') activeBtn.classList.add('bg-pink-600', 'text-white');
+            
+            const notification = document.createElement('div');
+            notification.className = 'fixed bottom-4 right-4 px-6 py-3 rounded-lg shadow-lg z-50 bg-green-500 text-white';
+            notification.textContent = data.message;
+            document.body.appendChild(notification);
+            setTimeout(() => notification.remove(), 3000);
+        }
+    });
+}
+</script>
+@endauth
 @endsection

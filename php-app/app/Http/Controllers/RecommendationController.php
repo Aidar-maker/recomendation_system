@@ -18,17 +18,8 @@ class RecommendationController extends Controller
     {
         $user = Auth::user();
         
-        // Получаем рекомендации от ML сервиса
-        $recommendations = $this->mlService->getUserRecommendations(
-            $user->user_id,
-            12
-        );
+        $recommendations = $this->mlService->getUserRecommendations($user->user_id, 12);
 
-        foreach ($recommendations as &$rec) {
-            $rec['predicted_rating'] = round($rec['predicted_rating'] * 2, 1);
-        }
-
-        // Получаем объекты книг для отображения
         $bookIds = array_column($recommendations, 'book_id');
         $books = \App\Models\Book::whereIn('book_id', $bookIds)
             ->get()

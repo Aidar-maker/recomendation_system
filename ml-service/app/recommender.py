@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 from sklearn.decomposition import TruncatedSVD
+from sklearn.preprocessing import StandardScaler
 from .database import get_db_connection
 
 class RecommendationEngine:
@@ -23,24 +24,16 @@ class RecommendationEngine:
     
     def _create_user_item_matrix(self):
         """Создаёт матрицу пользователь × книга"""
-        print(f"🔍 Отладка матрицы:")
-        print(f"   Всего оценок: {len(self.ratings_df)}")
-        
         if self.ratings_df.empty:
-            print("   ❌ DataFrame пустой")
             return None, None, None
         
         user_counts = self.ratings_df['user_id'].value_counts()
         book_counts = self.ratings_df['book_id'].value_counts()
         
-        print(f"   👤 Пользователей всего: {len(user_counts)}")
-        print(f"   📚 Книг всего: {len(book_counts)}")
+        active_users = user_counts[user_counts >= 2].index.tolist()
+        active_books = book_counts[book_counts >= 2].index.tolist()
         
-        active_users = user_counts[user_counts >= 1].index.tolist()
-        active_books = book_counts[book_counts >= 1].index.tolist()
-        
-        if not active_books:
-            print("   ❌ НЕТ активных книг!")
+        if len(active_users) < 2 or len(active_books) < 2:
             return None, None, None
         
         filtered_ratings = self.ratings_df[
@@ -49,7 +42,6 @@ class RecommendationEngine:
         ]
         
         if filtered_ratings.empty:
-            print("   ❌ Отфильтрованный DataFrame пустой")
             return None, None, None
         
         try:
@@ -59,72 +51,73 @@ class RecommendationEngine:
                 values='rating',
                 fill_value=0
             )
-            print(f"   ✅ Матрица создана: {matrix.shape}")
             return matrix, matrix.index.tolist(), matrix.columns.tolist()
         except Exception as e:
-            print(f"   ❌ Ошибка создания матрицы: {e}")
+            print(f"Ошибка создания матрицы: {e}")
             return None, None, None
     
     def get_user_recommendations(self, user_id: int, limit: int = 5):
         """Генерирует персональные рекомендации через SVD"""
         self.load_data()
         
-        print(f"🔍 Запрос рекомендаций для user_id={user_id}")
-        print(f"📊 Всего оценок в БД: {len(self.ratings_df)}")
+        print(f"Запрос рекомендаций для user_id={user_id}")
+        print(f"Всего оценок в БД: {len(self.ratings_df)}")
         
         rated_books = set(self.ratings_df[self.ratings_df['user_id'] == user_id]['book_id'].values)
-        print(f"✅ Пользователь оценил {len(rated_books)} книг")
+        print(f"Пользователь оценил {len(rated_books)} книг")
         
-        if self.ratings_df.empty:
-            print("⚠️ Нет оценок вообще")
+        if len(self.ratings_df) < 50:
+            print("Мало данных, возвращаем популярные книги")
             return self._get_popular_books(limit, exclude_ids=rated_books)
         
         matrix, users, books = self._create_user_item_matrix()
+        
         if matrix is None or user_id not in users:
-            print(f"⚠️ Пользователь {user_id} не в матрице, берём популярные")
+            print("Матрица не создана или пользователь не в матрице, возвращаем популярные")
             return self._get_popular_books(limit, exclude_ids=rated_books)
         
-        # --- SVD вместо NMF ---
-        n_components = min(5, len(users)-1, len(books)-1)
+        # Центрируем матрицу (вычитаем среднее)
+        matrix_mean = matrix.mean().mean()
+        matrix_centered = matrix - matrix_mean
+        
+        # SVD с небольшим числом компонент
+        n_components = min(5, matrix_centered.shape[0] - 1, matrix_centered.shape[1] - 1)
         if n_components < 1:
             n_components = 1
-        print(f"🔧 SVD компонентов: {n_components}")
+        
+        print(f"SVD компонентов: {n_components}")
         
         try:
             svd = TruncatedSVD(n_components=n_components, random_state=42)
-            user_factors = svd.fit_transform(matrix)    # матрица пользователей
-            item_factors = svd.components_              # матрица книг
+            user_factors = svd.fit_transform(matrix_centered)
+            item_factors = svd.components_
             
             user_idx = users.index(user_id)
-            predictions = np.dot(user_factors[user_idx], item_factors)
-            print(f"📈 Предсказания (до замены нулей): {predictions[:10]}...")
+            predictions = np.dot(user_factors[user_idx], item_factors) + matrix_mean
+            
+            print(f"Предсказания (min={predictions.min():.3f}, max={predictions.max():.3f})")
+            
         except Exception as e:
-            print(f"❌ SVD ошибка: {e}")
+            print(f"SVD ошибка: {e}")
             return self._get_popular_books(limit, exclude_ids=rated_books)
         
-        # --- Замена нулевых предсказаний на средние оценки книг ---
-        global_mean = self.ratings_df['rating'].mean()
-        book_means = self.ratings_df.groupby('book_id')['rating'].mean().to_dict()
-        
-        for i, book_id in enumerate(books):
-            if predictions[i] == 0:
-                predictions[i] = book_means.get(book_id, global_mean)
-                print(f"  Замена нуля для книги {book_id} на {predictions[i]:.2f}")
-        
-        # --- Формирование рекомендаций (исключая оценённые) ---
+        # Формирование рекомендаций
         recommendations = []
         for idx, book_id in enumerate(books):
             if book_id not in rated_books:
+                rating = predictions[idx]
+                # Ограничиваем рейтинг в диапазоне 1-10
+                rating = max(1, min(10, rating))
                 recommendations.append({
                     'book_id': int(book_id),
-                    'predicted_rating': round(float(predictions[idx]), 2)
+                    'predicted_rating': round(rating, 1)
                 })
         
         # Сортировка и выбор топ-N
         recommendations.sort(key=lambda x: x['predicted_rating'], reverse=True)
         top_recs = recommendations[:limit]
         
-        # --- Обогащение данными книг ---
+        # Обогащение данными книг
         result = []
         for rec in top_recs:
             book_info = self.book_data[self.book_data['book_id'] == rec['book_id']]
@@ -139,57 +132,49 @@ class RecommendationEngine:
         
         # Если рекомендаций меньше limit, добиваем популярными
         if len(result) < limit:
-            print(f"⚠️ Мало рекомендаций ({len(result)}), добавляем популярные")
+            print(f"Мало рекомендаций ({len(result)}), добавляем популярные")
             needed = limit - len(result)
             pop_recs = self._get_popular_books(needed, exclude_ids=rated_books)
             result.extend(pop_recs)
         
-        print(f"✅ Возвращаем {len(result)} рекомендаций")
+        print(f"Возвращаем {len(result)} рекомендаций")
         return result
     
     def _get_popular_books(self, limit: int, exclude_ids=None):
-        """Популярные книги (средний рейтинг)"""
+        """Популярные книги"""
         if exclude_ids is None:
             exclude_ids = []
         
+        exclude_tuple = tuple(exclude_ids) if exclude_ids else (0,)
+        
         query = """
             SELECT b.book_id, b.title, b.author, 
-                   COALESCE(AVG(r.rating), 7.5) as avg_rating,
-                   COUNT(r.rating) as cnt
+                   COALESCE(ROUND(AVG(r.rating), 1), 7.5) as avg_rating
             FROM Book b
             LEFT JOIN Ratings r ON b.book_id = r.book_id
             WHERE b.book_id NOT IN %s
             GROUP BY b.book_id
-            ORDER BY cnt DESC, avg_rating DESC
+            ORDER BY COUNT(r.rating) DESC, avg_rating DESC
             LIMIT %s
         """
-        exclude_tuple = tuple(exclude_ids) if exclude_ids else (0,)
+        
         df = pd.read_sql_query(query, self.conn, params=(exclude_tuple, limit))
         
         if df.empty:
-            # Берём любые не оценённые
             query_all = """
-                SELECT book_id, title, author
+                SELECT book_id, title, author, 7.5 as avg_rating
                 FROM Book
                 WHERE book_id NOT IN %s
                 LIMIT %s
             """
             df = pd.read_sql_query(query_all, self.conn, params=(exclude_tuple, limit))
-            if not df.empty:
-                df['avg_rating'] = 7.5
-                df['cnt'] = 0
-        
-        if df.empty:
-            return []
         
         df['predicted_rating'] = df['avg_rating']
         df['cover_url'] = None
         return df.to_dict('records')
     
-    # Остальные методы (get_similar_books, get_content_based_recommendations, get_recommendations_by_genres) 
-    # остаются без изменений – они уже рабочие. Я их привожу для полноты.
-    
     def get_similar_books(self, book_id: int, limit: int = 5):
+        """Похожие книги через жанры"""
         query = """
             SELECT DISTINCT b2.book_id, b2.title, b2.author
             FROM Book b1
@@ -202,11 +187,12 @@ class RecommendationEngine:
             LIMIT %s
         """
         df = pd.read_sql_query(query, self.conn, params=(book_id, book_id, limit))
-        df['predicted_rating'] = 4.0
+        df['predicted_rating'] = 7.5
         df['cover_url'] = None
         return df.to_dict('records')
     
     def get_content_based_recommendations(self, user_id: int, limit: int = 5):
+        """Контентная фильтрация по жанрам"""
         query = """
             SELECT DISTINCT b.book_id, b.title, b.author
             FROM Book b
@@ -221,13 +207,15 @@ class RecommendationEngine:
         df = pd.read_sql_query(query, self.conn, params=(user_id, user_id, limit))
         if df.empty:
             return []
-        df['predicted_rating'] = 4.5
+        df['predicted_rating'] = 7.5
         df['cover_url'] = None
         return df.to_dict('records')
     
     def get_recommendations_by_genres(self, genre_ids: list, limit: int = 5):
+        """Рекомендации по жанрам"""
         if not genre_ids:
             return self._get_popular_books(limit)
+        
         placeholders = ','.join(['%s'] * len(genre_ids))
         query = f"""
             SELECT DISTINCT b.book_id, b.title, b.author,
@@ -243,6 +231,6 @@ class RecommendationEngine:
         df = pd.read_sql_query(query, self.conn, params=params)
         if df.empty:
             return self._get_popular_books(limit)
-        df['predicted_rating'] = 4.0
+        df['predicted_rating'] = 7.5
         df['cover_url'] = None
         return df.to_dict('records')

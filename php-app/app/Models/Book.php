@@ -25,6 +25,11 @@ class Book extends Model
         return $this->hasMany(Rating::class, 'book_id', 'book_id');
     }
 
+    public function userStatuses()
+    {
+        return $this->hasMany(UserBookStatus::class, 'book_id', 'book_id');
+    }
+
     public function genres()
     {
         return $this->belongsToMany(Genre::class, 'Book_Genres', 'book_id', 'genre_id');
