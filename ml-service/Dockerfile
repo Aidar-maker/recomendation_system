@@ -20,6 +20,10 @@ RUN pip install --no-cache-dir --upgrade pip && \
 # Копируем код приложения
 COPY ./app ./app
 
+# Копируем файлы Alembic (НОВОЕ!)
+COPY ./alembic.ini ./alembic.ini
+COPY ./alembic ./alembic
+
 # Открываем порт для API
 EXPOSE 8000
 
