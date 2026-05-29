@@ -8,7 +8,6 @@ services:
       MYSQL_USER: bookuser
       MYSQL_PASSWORD: bookpassword
     volumes:
-      - ./database:/docker-entrypoint-initdb.d
       - db_data:/var/lib/mysql
     ports:
       - "3306:3306"
@@ -18,26 +17,6 @@ services:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
       timeout: 20s
       retries: 10
-
-  php-app:
-    build: ./php-app
-    container_name: book_php
-    ports:
-      - "8080:80"
-    volumes:
-      - ./php-app:/var/www/html
-    depends_on:
-      db:
-        condition: service_healthy
-    environment:
-      DB_HOST: db
-      DB_NAME: book_recommender
-      DB_USER: bookuser
-      DB_PASS: bookpassword
-      ML_SERVICE_URL: http://ml-service:8000
-      ML_API_KEY: secret-ml-api-key-2024
-    networks:
-      - book-network
 
   ml-service:
     build: ./ml-service
