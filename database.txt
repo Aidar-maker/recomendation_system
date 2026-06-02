@@ -1,0 +1,37 @@
+-- Жанры
+INSERT INTO genres (genre_name) VALUES
+('Фантастика'),('Фэнтези'),('Детектив'),('Роман'),('Приключения'),
+('Ужасы'),('Исторический'),('Научная литература'),('Биография'),('Психология');
+
+-- Пользователи (пароль для всех: 123456789)
+INSERT INTO users (username, email, password_hash, age) VALUES
+('test_user1', 'test1@test.ru', '$2b$12$MVUAD.eOMN2EaSubbsHP2.YwYHMJ44iXyn9fzGNCHygspVFQRfusW', 25),
+('test_user2', 'test2@test.ru', '$2b$12$MVUAD.eOMN2EaSubbsHP2.YwYHMJ44iXyn9fzGNCHygspVFQRfusW', 30),
+('test_user3', 'test3@test.ru', '$2b$12$MVUAD.eOMN2EaSubbsHP2.YwYHMJ44iXyn9fzGNCHygspVFQRfusW', 28),
+('test_user4', 'test4@test.ru', '$2b$12$MVUAD.eOMN2EaSubbsHP2.YwYHMJ44iXyn9fzGNCHygspVFQRfusW', 35),
+('test_user5', 'test5@test.ru', '$2b$12$MVUAD.eOMN2EaSubbsHP2.YwYHMJ44iXyn9fzGNCHygspVFQRfusW', 22);
+
+-- Книги
+INSERT INTO books (isbn, title, author, description, year_publication, publisher, image_url) VALUES
+('9780061120084','Убить пересмешника','Харпер Ли','Классический роман о расовой несправедливости',1960,'J.B. Lippincott','https://covers.openlibrary.org/b/id/12345-L.jpg'),
+('9780451524935','1984','Джордж Оруэлл','Антиутопия о тоталитарном обществе',1949,'Secker & Warburg','https://covers.openlibrary.org/b/id/12346-L.jpg'),
+('9780743273565','Великий Гэтсби','Фрэнсис Скотт Фицджеральд','История о любви и американской мечте',1925,'Scribner','https://covers.openlibrary.org/b/id/12347-L.jpg'),
+('9780316769488','Над пропастью во ржи','Джером Д. Сэлинджер','История подростка в Нью-Йорке',1951,'Little, Brown','https://covers.openlibrary.org/b/id/12348-L.jpg'),
+('9780060935467','Убить дракона','Евгений Шварц','Пьеса-сказка о борьбе добра со злом',1944,'Советский писатель','https://covers.openlibrary.org/b/id/12349-L.jpg'),
+('9780141439518','Гордость и предубеждение','Джейн Остин','Классический роман о любви',1813,'T. Egerton','https://covers.openlibrary.org/b/id/12350-L.jpg'),
+('9780061120084','Преступление и наказание','Фёдор Достоевский','Психологический роман',1866,'The Russian Messenger','https://covers.openlibrary.org/b/id/12351-L.jpg'),
+('9780141439600','Война и мир','Лев Толстой','Эпопея о войне и мире',1869,'The Russian Messenger','https://covers.openlibrary.org/b/id/12352-L.jpg'),
+('9780060935467','Мастер и Маргарита','Михаил Булгаков','Фантастический роман',1967,'YMCA Press','https://covers.openlibrary.org/b/id/12353-L.jpg'),
+('9780141439518','Гарри Поттер и философский камень','Джоан Роулинг','Первая книга о юном волшебнике',1997,'Bloomsbury','https://covers.openlibrary.org/b/id/12354-L.jpg');
+
+-- Жанры книг
+INSERT INTO book_genre (book_id, genre_id) VALUES 
+(1,7),(2,1),(3,4),(4,4),(5,2),(5,5),(6,4),(7,10),(8,7),(9,1),(9,6),(10,2),(10,5);
+
+-- Оценки (для работы ML)
+INSERT INTO ratings (user_id, book_id, rating) VALUES
+(1,1,9),(1,2,10),(1,3,8),(1,6,9),(1,7,10),
+(2,2,9),(2,4,7),(2,5,10),(2,8,8),(2,10,10),
+(3,1,8),(3,3,9),(3,6,10),(3,7,9),(3,9,8),
+(4,2,10),(4,5,9),(4,8,10),(4,9,9),(4,10,8),
+(5,1,7),(5,3,8),(5,4,9),(5,6,8),(5,7,9);

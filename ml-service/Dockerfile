@@ -20,7 +20,7 @@ RUN pip install --no-cache-dir --upgrade pip && \
 # Копируем код приложения
 COPY ./app ./app
 
-# Копируем файлы Alembic (НОВОЕ!)
+# Копируем файлы Alembic
 COPY ./alembic.ini ./alembic.ini
 COPY ./alembic ./alembic
 
