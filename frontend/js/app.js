@@ -90,10 +90,16 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     async function loadRecommendations() {
         if (!recommendationsContainer) return;
+        console.log('Загрузка рекомендаций');
         recommendationsContainer.innerHTML = '<div class="spinner-border text-primary" role="status"></div>';
         try {
+            const startTime = performance.now();
             const data = await recommendAPI.getRecommendations(10);
-            // API возвращает просто массив, нужно убедиться что это массив
+            const endTime = performance.now();
+            
+            console.log(`Получено ${data.length} книг за ${(endTime - startTime).toFixed(2)}ms`);
+            console.log('Данные:', data);
+            
             const books = Array.isArray(data) ? data : []; 
             renderBooks(recommendationsContainer, books, 'recommendation');
         } catch (e) {
@@ -171,9 +177,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (refreshFavBtn) refreshFavBtn.addEventListener('click', loadFavorites);
 
     // Загружаем данные при открытии
-    loadRecommendations();
-    loadFavorites();
-    loadReadingStatuses();
+    async function initDashboard(){
+        loadRecommendations();
+        loadFavorites();
+        loadReadingStatuses();
+    }
+
+    initDashboard();
     
     // Выход из системы
     const logoutBtn = document.getElementById('logout-btn');

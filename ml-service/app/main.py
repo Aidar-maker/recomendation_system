@@ -4,6 +4,7 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel, Field
 from typing import List, Optional, Literal
 from datetime import datetime, timedelta
+from sqlalchemy import text
 import pandas as pd
 from .recommender import RecommendationEngine
 from .auth import (
@@ -12,6 +13,7 @@ from .auth import (
     ACCESS_TOKEN_EXPIRE_MINUTES, SECRET_KEY, ALGORITHM
 )
 from jose import jwt
+import time
 
 app = FastAPI(title="Книжный Советник API", version="1.0.0")
 security = HTTPBearer()
@@ -34,7 +36,7 @@ class BookRecommendation(BaseModel):
     title: str
     author: str
     predicted_rating: float
-    cover_url: Optional[str] = None
+    image_url: Optional[str] = None
 
 class GenreItem(BaseModel):
     genre_id: int
@@ -54,14 +56,14 @@ class BookWithDate(BaseModel):
     book_id: int
     title: str
     author: str
-    cover_url: Optional[str]
+    image_url: Optional[str]
     added_at: datetime
 
 class BookWithStatus(BaseModel):
     book_id: int
     title: str
     author: str
-    cover_url: Optional[str]
+    image_url: Optional[str]
     status: int
     updated_at: datetime
 
@@ -69,7 +71,7 @@ class BookWithRating(BaseModel):
     book_id: int
     title: str
     author: str
-    cover_url: Optional[str]
+    image_url: Optional[str]
     rating: int
     rated_at: datetime
 
@@ -235,13 +237,13 @@ async def get_favorites(
         order_direction = "ASC" if order == "asc" else "DESC"
         
         query = f"""
-            SELECT b.book_id, b.title, b.author, b.cover_url, 
+            SELECT b.book_id, b.title, b.author, b.image_url, 
                    f.added_at, COALESCE(AVG(r.rating), 0) as avg_rating
             FROM favorites f
             JOIN books b ON f.book_id = b.book_id
             LEFT JOIN ratings r ON b.book_id = r.book_id
             WHERE f.user_id = %s
-            GROUP BY b.book_id, b.title, b.author, b.cover_url, f.added_at
+            GROUP BY b.book_id, b.title, b.author, b.image_url, f.added_at
             ORDER BY {sort_field} {order_direction}
         """
         
@@ -256,7 +258,7 @@ async def get_favorites(
                 "book_id": int(row['book_id']),
                 "title": row['title'],
                 "author": row['author'],
-                "cover_url": row['cover_url'],
+                "image_url": row['image_url'],
                 "added_at": row['added_at'].isoformat() if pd.notna(row['added_at']) else None
             })
         
@@ -275,19 +277,17 @@ async def add_to_favorites(
         conn = get_db_connection()
         
         # Проверяем существование книги
-        check_book = pd.read_sql_query(
-            "SELECT book_id FROM books WHERE book_id = %s", 
-            conn, params=(book_id,)
-        )
+        check_query = text("SELECT book_id FROM books WHERE book_id = :book_id")
+        check_book = pd.read_sql_query(check_query, conn, params={"book_id": book_id})
         if check_book.empty:
             raise HTTPException(status_code=404, detail="Книга не найдена")
         
-        # Добавляем в избранное (INSERT IGNORE чтобы не было ошибки при дубле)
-        query = """
+        # Добавляем в избранное
+        query = text("""
             INSERT IGNORE INTO favorites (user_id, book_id)
-            VALUES (%s, %s)
-        """
-        conn.execute(query, (user_id, book_id))
+            VALUES (:user_id, :book_id)
+        """)
+        conn.execute(query, {"user_id": user_id, "book_id": book_id})
         conn.commit()
         
         return {"message": "Книга добавлена в избранное", "book_id": book_id}
@@ -296,6 +296,8 @@ async def add_to_favorites(
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        conn.close()
 
 @app.delete("/api/v1/favorites/{book_id}")
 async def remove_from_favorites(
@@ -343,25 +345,25 @@ async def get_reading_statuses(
         
         if status:
             query = f"""
-                SELECT b.book_id, b.title, b.author, b.cover_url,
+                SELECT b.book_id, b.title, b.author, b.image_url,
                        rs.status, rs.updated_at, COALESCE(AVG(r.rating), 0) as avg_rating
                 FROM reading_statuses rs
                 JOIN books b ON rs.book_id = b.book_id
                 LEFT JOIN ratings r ON b.book_id = r.book_id
                 WHERE rs.user_id = %s AND rs.status = %s
-                GROUP BY b.book_id, b.title, b.author, b.cover_url, rs.status, rs.updated_at
+                GROUP BY b.book_id, b.title, b.author, b.image_url, rs.status, rs.updated_at
                 ORDER BY {sort_field} {order_direction}
             """
             df = pd.read_sql_query(query, conn, params=(user_id, status))
         else:
             query = f"""
-                SELECT b.book_id, b.title, b.author, b.cover_url,
+                SELECT b.book_id, b.title, b.author, b.image_url,
                        rs.status, rs.updated_at, COALESCE(AVG(r.rating), 0) as avg_rating
                 FROM reading_statuses rs
                 JOIN books b ON rs.book_id = b.book_id
                 LEFT JOIN ratings r ON b.book_id = r.book_id
                 WHERE rs.user_id = %s
-                GROUP BY b.book_id, b.title, b.author, b.cover_url, rs.status, rs.updated_at
+                GROUP BY b.book_id, b.title, b.author, b.image_url, rs.status, rs.updated_at
                 ORDER BY {sort_field} {order_direction}
             """
             df = pd.read_sql_query(query, conn, params=(user_id,))
@@ -375,7 +377,7 @@ async def get_reading_statuses(
                 "book_id": int(row['book_id']),
                 "title": row['title'],
                 "author": row['author'],
-                "cover_url": row['cover_url'],
+                "image_url": row['Image_url'],
                 "status": int(row['status']),
                 "updated_at": row['updated_at'].isoformat() if pd.notna(row['updated_at']) else None
             })
@@ -395,25 +397,23 @@ async def set_reading_status(
         from .database import get_db_connection
         conn = get_db_connection()
         
-        # Проверяем существование книги
-        check_book = pd.read_sql_query(
-            "SELECT book_id FROM books WHERE book_id = %s", 
-            conn, params=(book_id,)
-        )
+        # Проверяем книгу
+        check_query = text("SELECT book_id FROM books WHERE book_id = :book_id")
+        check_book = pd.read_sql_query(check_query, conn, params={"book_id": book_id})
         if check_book.empty:
             raise HTTPException(status_code=404, detail="Книга не найдена")
         
-        # Проверяем валидность статуса
-        if status_data.status not in [1, 2, 3, 4]:
-            raise HTTPException(status_code=400, detail="Неверный статус (1-4)")
-        
-        # Используем INSERT ... ON DUPLICATE KEY UPDATE
-        query = """
+        # Устанавливаем статус
+        query = text("""
             INSERT INTO reading_statuses (user_id, book_id, status)
-            VALUES (%s, %s, %s)
-            ON DUPLICATE KEY UPDATE status = %s, updated_at = NOW()
-        """
-        conn.execute(query, (user_id, book_id, status_data.status, status_data.status))
+            VALUES (:user_id, :book_id, :status)
+            ON DUPLICATE KEY UPDATE status = :status, updated_at = NOW()
+        """)
+        conn.execute(query, {
+            "user_id": user_id, 
+            "book_id": book_id, 
+            "status": status_data.status
+        })
         conn.commit()
         
         status_names = {1: "В планах", 2: "Читаю", 3: "Прочитано", 4: "Брошено"}
@@ -427,6 +427,8 @@ async def set_reading_status(
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        conn.close()
 
 @app.delete("/api/v1/reading-statuses/{book_id}")
 async def remove_reading_status(
@@ -472,7 +474,7 @@ async def get_my_ratings(
         order_direction = "ASC" if order == "asc" else "DESC"
         
         query = f"""
-            SELECT b.book_id, b.title, b.author, b.cover_url,
+            SELECT b.book_id, b.title, b.author, b.image_url,
                    r.rating, r.rated_at
             FROM ratings r
             JOIN books b ON r.book_id = b.book_id
@@ -491,7 +493,7 @@ async def get_my_ratings(
                 "book_id": int(row['book_id']),
                 "title": row['title'],
                 "author": row['author'],
-                "cover_url": row['cover_url'],
+                "image_url": row['image_url'],
                 "rating": int(row['rating']),
                 "rated_at": row['rated_at'].isoformat() if pd.notna(row['rated_at']) else None
             })
@@ -510,30 +512,23 @@ async def create_or_update_rating(
         from .database import get_db_connection
         conn = get_db_connection()
         
-        # Проверяем существование книги
-        check_book = pd.read_sql_query(
-            "SELECT book_id FROM books WHERE book_id = %s", 
-            conn, params=(rating_data.book_id,)
-        )
+        # Проверяем книгу
+        check_query = text("SELECT book_id FROM books WHERE book_id = :book_id")
+        check_book = pd.read_sql_query(check_query, conn, params={"book_id": rating_data.book_id})
         if check_book.empty:
             raise HTTPException(status_code=404, detail="Книга не найдена")
         
-        # Проверяем валидность оценки
-        if rating_data.rating < 1 or rating_data.rating > 10:
-            raise HTTPException(status_code=400, detail="Оценка должна быть от 1 до 10")
-        
-        # INSERT ... ON DUPLICATE KEY UPDATE
-        query = """
+        # Сохраняем оценку
+        query = text("""
             INSERT INTO ratings (user_id, book_id, rating)
-            VALUES (%s, %s, %s)
-            ON DUPLICATE KEY UPDATE rating = %s, rated_at = NOW()
-        """
-        conn.execute(query, (
-            user_id, 
-            rating_data.book_id, 
-            rating_data.rating, 
-            rating_data.rating
-        ))
+            VALUES (:user_id, :book_id, :rating)
+            ON DUPLICATE KEY UPDATE rating = :rating, rated_at = NOW()
+        """)
+        conn.execute(query, {
+            "user_id": user_id,
+            "book_id": rating_data.book_id,
+            "rating": rating_data.rating
+        })
         conn.commit()
         
         return {
@@ -546,6 +541,8 @@ async def create_or_update_rating(
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        conn.close()
 
 @app.delete("/api/v1/ratings/{book_id}")
 async def delete_rating(
@@ -569,3 +566,11 @@ async def delete_rating(
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+@app.middleware("http")
+async def add_process_time_header(request, call_next):
+    start_time = time.time()
+    response = await call_next(request)
+    process_time = time.time() - start_time
+    print(f"⏱️ {request.method} {request.url.path} - {process_time:.3f}s")
+    return response

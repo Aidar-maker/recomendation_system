@@ -1,6 +1,18 @@
 // frontend/js/auth.js
 
 document.addEventListener('DOMContentLoaded', () => {
+    // Если мы уже на dashboard.html — не проверяем токен здесь
+    if (window.location.pathname.includes('dashboard.html')) {
+        return;
+    }
+
+    // Если мы на index.html и токен есть — редирект на dashboard
+    if (window.location.pathname.includes('index.html') || window.location.pathname === '/' || window.location.pathname.endsWith('/frontend/')) {
+        if (localStorage.getItem('accessToken')) {
+            window.location.href = 'dashboard.html';
+        }
+    }
+
     // Если пользователь уже залогинен, сразу кидаем его на дашборд
     if (localStorage.getItem('accessToken')) {
         window.location.href = 'dashboard.html';

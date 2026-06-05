@@ -1,7 +1,7 @@
 // frontend/js/api.js
 
 // Базовый адрес API
-const API_URL = 'http://localhost:8000/api/v1';
+const API_URL = 'http://127.0.0.1:8000/api/v1';
 
 /**
  * Универсальная функция для запросов к API.
@@ -28,25 +28,38 @@ async function apiRequest(endpoint, options = {}) {
         // 4. Делаем запрос
         const response = await fetch(`${API_URL}${endpoint}`, config);
 
-        // 5. Если ошибка 401 (Unauthorized) — значит токен протух, выкидываем юзера на логин
+        // 5. Если ошибка 401 (Unauthorized) — значит токен протух
         if (response.status === 401) {
             localStorage.removeItem('accessToken');
             window.location.href = 'index.html';
             return null;
         }
 
-        // 6. Если ошибка сервера — выбрасываем исключение
+        // 6. Если ошибка сервера (не 2xx)
         if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.detail || 'Ошибка сервера');
+            // Пробуем получить текст ошибки
+            let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+            try {
+                const errorData = await response.clone().json();
+                errorMessage = errorData.detail || errorMessage;
+            } catch (e) {
+                // Если не JSON — оставляем текстовую ошибку
+            }
+            throw new Error(errorMessage);
         }
 
-        // 7. Возвращаем JSON-данные
-        return await response.json();
+        // 7. Проверяем, есть ли контент в ответе
+        const contentType = response.headers.get('content-type');
+        if (contentType && contentType.includes('application/json')) {
+            return await response.json();
+        } else {
+            return null; // Или пустой объект, если нужно
+        }
 
     } catch (error) {
         console.error('API Error:', error);
-        alert(`Ошибка: ${error.message}`);
+        // Не показываем alert для каждой ошибки (раздражает)
+        // alert(`Ошибка: ${error.message}`);
         throw error;
     }
 }
