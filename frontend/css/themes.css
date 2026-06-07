@@ -1,0 +1,238 @@
+/* === ГЛОБАЛЬНЫЕ ТЕМЫ === */
+
+/* Базовые переменные (светлая тема по умолчанию) */
+:root,
+[data-theme="light"] {
+    --bg-color: #ffffff;
+    --text-color: #212529;
+    --card-bg: #f8f9fa;
+    --navbar-bg: #212529;
+    --navbar-text: #ffffff;
+    --border-color: #dee2e6;
+    --muted-color: #6c757d;
+    --input-bg: #ffffff;
+    --input-border: #ced4da;
+    --hover-bg: #e9ecef;
+    --shadow-color: rgba(0, 0, 0, 0.1);
+}
+
+/* Кремовая тема */
+[data-theme="cream"] {
+    --bg-color: #f5f0e8;
+    --text-color: #3d3529;
+    --card-bg: #faf6ee;
+    --navbar-bg: #5c4f3d;
+    --navbar-text: #f5f0e8;
+    --border-color: #d4c9b8;
+    --muted-color: #8b7d6b;
+    --input-bg: #faf6ee;
+    --input-border: #d4c9b8;
+    --hover-bg: #ebe4d6;
+    --shadow-color: rgba(61, 53, 41, 0.1);
+}
+
+/* Тёмная тема */
+[data-theme="dark"] {
+    --bg-color: #1a1a2e;
+    --text-color: #e9ecef;
+    --card-bg: #16213e;
+    --navbar-bg: #0f0f1e;
+    --navbar-text: #e9ecef;
+    --border-color: #2a2a4a;
+    --muted-color: #8b8ba7;
+    --input-bg: #16213e;
+    --input-border: #2a2a4a;
+    --hover-bg: #252545;
+    --shadow-color: rgba(0, 0, 0, 0.3);
+}
+
+/* === ПРИМЕНЕНИЕ ПЕРЕМЕННЫХ === */
+
+body {
+    background-color: var(--bg-color) !important;
+    color: var(--text-color) !important;
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Карточки */
+.card,
+.admin-card,
+.search-box,
+.chapter-list,
+.book-info,
+.alert,
+.modal-content,
+.tab-content {
+    background-color: var(--card-bg) !important;
+    color: var(--text-color) !important;
+    border-color: var(--border-color) !important;
+    transition: background-color 0.3s ease;
+}
+
+/* Навбар */
+.navbar-dark.bg-dark {
+    background-color: var(--navbar-bg) !important;
+}
+
+.navbar-dark .navbar-brand,
+.navbar-dark .navbar-text {
+    color: var(--navbar-text) !important;
+}
+
+/* Кнопки */
+.btn-outline-light {
+    color: var(--navbar-text) !important;
+    border-color: var(--navbar-text) !important;
+}
+
+.btn-outline-light:hover {
+    background-color: var(--navbar-text) !important;
+    color: var(--navbar-bg) !important;
+}
+
+.btn-outline-secondary {
+    color: var(--text-color) !important;
+    border-color: var(--border-color) !important;
+}
+
+.btn-outline-secondary:hover {
+    background-color: var(--hover-bg) !important;
+}
+
+/* Поля ввода */
+.form-control,
+.form-select {
+    background-color: var(--input-bg) !important;
+    color: var(--text-color) !important;
+    border-color: var(--input-border) !important;
+}
+
+.form-control:focus,
+.form-select:focus {
+    background-color: var(--input-bg) !important;
+    color: var(--text-color) !important;
+    border-color: #86b7fe !important;
+    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25) !important;
+}
+
+.form-control::placeholder {
+    color: var(--muted-color) !important;
+}
+
+/* Текст */
+.text-muted {
+    color: var(--muted-color) !important;
+}
+
+.card-subtitle {
+    color: var(--muted-color) !important;
+}
+
+/* Границы */
+.border,
+hr {
+    border-color: var(--border-color) !important;
+}
+
+/* Вкладки */
+.nav-tabs .nav-link {
+    color: var(--text-color) !important;
+    border-color: var(--border-color) !important;
+}
+
+.nav-tabs .nav-link.active {
+    background-color: var(--card-bg) !important;
+    color: var(--text-color) !important;
+    border-color: var(--border-color) var(--border-color) var(--card-bg) !important;
+}
+
+.nav-tabs .nav-link:hover {
+    background-color: var(--hover-bg) !important;
+}
+
+/* Пагинация */
+.page-link {
+    background-color: var(--card-bg) !important;
+    color: var(--text-color) !important;
+    border-color: var(--border-color) !important;
+}
+
+.page-link:hover {
+    background-color: var(--hover-bg) !important;
+}
+
+.page-item.active .page-link {
+    background-color: #0d6efd !important;
+    border-color: #0d6efd !important;
+    color: #ffffff !important;
+}
+
+.page-item.disabled .page-link {
+    background-color: var(--card-bg) !important;
+    color: var(--muted-color) !important;
+}
+
+/* Список глав */
+.chapter-item {
+    border-bottom-color: var(--border-color) !important;
+}
+
+.chapter-item:hover {
+    background-color: var(--hover-bg) !important;
+}
+
+/* Модальные окна */
+.modal-header,
+.modal-footer {
+    border-color: var(--border-color) !important;
+}
+
+.btn-close {
+    
+}
+
+/* Спиннеры */
+.spinner-border {
+    color: #0d6efd !important;
+}
+
+/* Бейджи */
+.badge.bg-secondary {
+    background-color: var(--muted-color) !important;
+    color: #ffffff !important;
+}
+
+/* Превью обложки */
+.chapter-preview {
+    background-color: var(--hover-bg) !important;
+    color: var(--text-color) !important;
+}
+
+/* Читалка - переопределяем свои стили */
+[data-theme="cream"] .reader-container,
+[data-theme="cream"] .chapter-content {
+    background-color: #faf6ee !important;
+    color: #3d3529 !important;
+}
+
+[data-theme="dark"] .reader-container,
+[data-theme="dark"] .chapter-content {
+    background-color: #16213e !important;
+    color: #e9ecef !important;
+}
+
+/* Плавные переходы для всех элементов */
+* {
+    transition-property: background-color, color, border-color;
+    transition-duration: 0.2s;
+    transition-timing-function: ease;
+}
+
+/* Исключения - элементы без перехода */
+img,
+video,
+canvas,
+.spinner-border,
+.progress-bar {
+    transition: none !important;
+}

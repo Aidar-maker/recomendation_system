@@ -172,21 +172,12 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Переключение темы
     function toggleTheme() {
-        const body = document.body;
-        const current = body.getAttribute('data-theme');
-        const next = current === 'dark' ? 'light' : 'dark';
-        
-        body.setAttribute('data-theme', next);
-        localStorage.setItem('readerTheme', next);
-        console.log(`🌓 Тема: ${next}`);
+        cycleTheme();
     }
 
-    // Загрузка сохранённой темы
     function loadTheme() {
-        const saved = localStorage.getItem('readerTheme');
-        if (saved) {
-            document.body.setAttribute('data-theme', saved);
-        }
+        // Тема загружается автоматически через theme.js
+        // Здесь можно добавить специфичные для читалки настройки
     }
 
     // Настройка размера шрифта
