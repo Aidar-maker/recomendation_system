@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Книжный Советник - Каталог</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f8f9fa;
+        }
+        .book-card {
+            transition: transform 0.2s, box-shadow 0.2s;
+            cursor: pointer;
+        }
+        .book-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+        }
+        .book-cover {
+            height: 300px;
+            object-fit: cover;
+            background-color: #e9ecef;
+        }
+        .search-box {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+        }
+        .genre-badge {
+            font-size: 0.8rem;
+            margin-right: 5px;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Навигация -->
+    <nav class="navbar navbar-dark bg-dark mb-4">
+        <div class="container">
+            <a class="navbar-brand" href="index.html">📚 Книжный Советник</a>
+            <div class="d-flex">
+                <a href="catalog.html" class="btn btn-outline-light me-2 active">📖 Каталог</a>
+                <a href="dashboard.html" class="btn btn-outline-light me-2">📚 Моя библиотека</a>
+                <button class="btn btn-outline-danger" id="logout-btn">Выйти</button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Основной контент -->
+    <div class="container">    
+        <!-- Поиск -->
+        <div class="search-box">
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <input type="text" id="searchInput" class="form-control form-control-lg" 
+                        placeholder="🔍 Поиск по названию или автору...">
+                </div>
+                <div class="col-md-3">
+                    <select id="genreFilter" class="form-select form-select-lg">
+                        <option value="">Все жанры</option>
+                        <!-- Жанры загрузятся через JS -->
+                    </select>
+                </div>
+                <!-- НОВЫЙ БЛОК: Сортировка -->
+                <div class="col-md-3">
+                    <select id="sortFilter" class="form-select form-select-lg">
+                        <option value="title-asc">По названию (А-Я)</option>
+                        <option value="title-desc">По названию (Я-А)</option>
+                        <option value="year-desc">Сначала новые</option>
+                        <option value="year-asc">Сначала старые</option>
+                        <option value="rating-desc">По рейтингу ↓</option>
+                        <option value="rating-asc">По рейтингу ↑</option>
+                        <option value="created_at-desc">Сначала добавленные</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- Заголовок -->
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2>📚 Каталог книг</h2>
+            <span class="text-muted" id="booksCount">Загрузка...</span>
+        </div>
+
+        <!-- Сетка книг -->
+        <div class="row" id="booksGrid">
+            <!-- Сюша JavaScript вставит книги -->
+            <div class="col-12 text-center py-5">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Загрузка...</span>
+                </div>
+            </div>
+        </div>
+        <!-- ПАГИНАЦИЯ -->
+        <nav aria-label="Навигация по страницам" class="mt-4">
+            <ul class="pagination justify-content-center" id="pagination">
+                <!-- Сюда JavaScript вставит кнопки страниц -->
+            </ul>
+        </nav>
+    </div>
+
+    <!-- Скрипты -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/toast.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/user.js"></script>
+    <script src="js/catalog.js"></script>
+
+</body>
+</html>

@@ -1,30 +1,29 @@
-from sqlalchemy import Column, Integer, String, Text, TIMESTAMP, ForeignKey, UniqueConstraint, DECIMAL
-from sqlalchemy.orm import declarative_base, relationship
-from sqlalchemy.sql import func
+from sqlalchemy import (
+    Column, Integer, String, Text, TIMESTAMP, DECIMAL, ForeignKey,
+    UniqueConstraint, func
+)
+from sqlalchemy.orm import relationship, declarative_base
 
 Base = declarative_base()
 
 class User(Base):
-    __tablename__ = 'users'
-
-    user_id = Column(Integer, primary_key=True, autoincrement=True)
+    __tablename__ = "users"
+    user_id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     username = Column(String(100), nullable=False)
     email = Column(String(255), unique=True, nullable=False)
     password_hash = Column(String(255), nullable=False)
     age = Column(Integer, nullable=True)
-    # Добавлено: роль (admin или user)
-    role = Column(String(20), default='user', nullable=False) 
+    role = Column(String(20), nullable=False, server_default="user")
     created_at = Column(TIMESTAMP, server_default=func.now())
 
     favorites = relationship("Favorite", back_populates="user")
-    reading_statuses = relationship("ReadingStatus", back_populates="user")
     ratings = relationship("Rating", back_populates="user")
+    reading_statuses = relationship("ReadingStatus", back_populates="user")
     reading_progress = relationship("ReadingProgress", back_populates="user")
 
 class Book(Base):
-    __tablename__ = 'books'
-
-    book_id = Column(Integer, primary_key=True, autoincrement=True)
+    __tablename__ = "books"
+    book_id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     isbn = Column(String(13), unique=True, nullable=True)
     title = Column(String(255), nullable=False)
     author = Column(String(255), nullable=False)
@@ -35,19 +34,13 @@ class Book(Base):
     created_at = Column(TIMESTAMP, server_default=func.now())
 
     genres = relationship("BookGenre", back_populates="book")
-    favorites = relationship("Favorite", back_populates="book")
-    reading_statuses = relationship("ReadingStatus", back_populates="book")
-    ratings = relationship("Rating", back_populates="book")
-    chapters = relationship("Chapter", back_populates="book", order_by="Chapter.order_number")
+    chapters = relationship("Chapter", back_populates="book")
 
 class Genre(Base):
-    __tablename__ = 'genres'
-
-    genre_id = Column(Integer, primary_key=True, autoincrement=True)
+    __tablename__ = "genres"
+    genre_id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     genre_name = Column(String(100), unique=True, nullable=False)
     created_at = Column(TIMESTAMP, server_default=func.now())
-
-    books = relationship("BookGenre", back_populates="genre")
 
 class BookGenre(Base):
     __tablename__ = 'book_genre'
@@ -109,31 +102,31 @@ class Rating(Base):
 # --- НОВЫЕ ТАБЛИЦЫ ДЛЯ MVP ---
 
 class Chapter(Base):
-    __tablename__ = 'chapters'
-
-    chapter_id = Column(Integer, primary_key=True, autoincrement=True)
-    book_id = Column(Integer, ForeignKey('books.book_id', ondelete='CASCADE'), nullable=False)
+    __tablename__ = "chapters"
+    
+    chapter_id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    book_id = Column(Integer, ForeignKey("books.book_id", ondelete="CASCADE"), nullable=False)
     title = Column(String(255), nullable=False)
-    content_html = Column(Text, nullable=False)  # HTML контент главы
-    order_number = Column(Integer, nullable=False, default=0) # Порядок глав
+    content_html = Column(Text, nullable=False)
+    order_number = Column(Integer, nullable=False)
     created_at = Column(TIMESTAMP, server_default=func.now())
 
     book = relationship("Book", back_populates="chapters")
 
 class ReadingProgress(Base):
-    __tablename__ = 'reading_progress'
-
-    progress_id = Column(Integer, primary_key=True, autoincrement=True)
-    user_id = Column(Integer, ForeignKey('users.user_id', ondelete='CASCADE'), nullable=False)
-    book_id = Column(Integer, ForeignKey('books.book_id', ondelete='CASCADE'), nullable=False)
-    chapter_id = Column(Integer, ForeignKey('chapters.chapter_id', ondelete='SET NULL'), nullable=True)
-    position_percent = Column(DECIMAL(5, 2), default=0) # Прогресс в % (0.00 - 100.00)
+    __tablename__ = "reading_progress"
+    
+    progress_id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    user_id = Column(Integer, ForeignKey("users.user_id", ondelete="CASCADE"), nullable=False)
+    book_id = Column(Integer, ForeignKey("books.book_id", ondelete="CASCADE"), nullable=False)
+    chapter_id = Column(Integer, ForeignKey("chapters.chapter_id", ondelete="SET NULL"), nullable=True)
+    position_percent = Column(DECIMAL(5, 2), server_default="0", nullable=True)
     last_read_at = Column(TIMESTAMP, server_default=func.now(), onupdate=func.now())
-
-    __table_args__ = (
-        UniqueConstraint('user_id', 'book_id', name='_user_book_progress_uc'),
-    )
 
     user = relationship("User", back_populates="reading_progress")
     book = relationship("Book")
     chapter = relationship("Chapter")
+
+    __table_args__ = (
+        UniqueConstraint('user_id', 'book_id', name='unique_user_book_progress'),
+    )

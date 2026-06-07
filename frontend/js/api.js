@@ -30,9 +30,16 @@ async function apiRequest(endpoint, options = {}) {
 
         // 5. Если ошибка 401 (Unauthorized) — значит токен протух
         if (response.status === 401) {
-            localStorage.removeItem('accessToken');
-            window.location.href = 'index.html';
-            return null;
+            // Не редиректим, если уже на странице входа
+            if (!window.location.pathname.includes('index.html')) {
+                localStorage.removeItem('accessToken');
+                localStorage.removeItem('userEmail');
+                window.location.href = 'index.html';
+                return null;
+            }
+            // Если мы на index.html — просто выбрасываем ошибку
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.detail || 'Неверный email или пароль');
         }
 
         // 6. Если ошибка сервера (не 2xx)
@@ -121,4 +128,8 @@ const ratingsAPI = {
         body: { book_id: bookId, rating }
     }),
     deleteRating: (bookId) => apiRequest(`/ratings/${bookId}`, { method: 'DELETE' })
+};
+
+const statsAPI = {
+    getReadingStats: () => apiRequest('/stats/reading')
 };

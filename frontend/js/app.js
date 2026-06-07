@@ -1,5 +1,4 @@
 // frontend/js/app.js
-
 document.addEventListener('DOMContentLoaded', async () => {
     // 1. Проверка авторизации
     const token = localStorage.getItem('accessToken');
@@ -7,6 +6,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         window.location.href = 'index.html';
         return;
     }
+
+    // 2. Загружаем последнюю читаемую книгу
+    await loadContinueReading();
 
     // Элементы DOM
     const recommendationsContainer = document.getElementById('recommendations-list');
@@ -87,6 +89,43 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     // Загрузка данных
+    async function loadContinueReading() {
+        try {
+            const continueBlock = document.getElementById('continueReadingBlock');
+            if (!continueBlock) return;
+
+            // Получаем прогресс чтения по всем книгам
+            // Для этого нужно получить список книг со статусом "Читаю" (status=2)
+            const statusesData = await booksAPI.getStatuses(2); // 2 = "Читаю"
+            
+            if (statusesData.books.length === 0) {
+                continueBlock.style.display = 'none';
+                return;
+            }
+
+            // Берём первую книгу (последнюю по updated_at)
+            const lastBook = statusesData.books[0];
+            
+            // Получаем прогресс для этой книги
+            const progress = await apiRequest(`/reading-progress/${lastBook.book_id}`);
+            
+            if (progress.chapter_id) {
+                // Показываем блок
+                document.getElementById('continueBookTitle').textContent = lastBook.title;
+                document.getElementById('continueReadingBtn').onclick = () => {
+                    window.location.href = `reader.html?book=${lastBook.book_id}&chapter=${progress.chapter_id}`;
+                };
+                continueBlock.style.display = 'block';
+                
+                console.log('✅ Найдена книга для продолжения:', lastBook.title);
+            } else {
+                continueBlock.style.display = 'none';
+            }
+            
+        } catch (e) {
+            console.warn('Не удалось загрузить последнюю книгу:', e);
+        }
+    }
 
     async function loadRecommendations() {
         if (!recommendationsContainer) return;
@@ -126,6 +165,51 @@ document.addEventListener('DOMContentLoaded', async () => {
             renderBooks(readingListContainer, response.books, 'reading');
         } catch (e) {
             console.error(e);
+        }
+    }
+
+        async function loadStats() {
+        const container = document.getElementById('statsContainer');
+        if (!container) return;
+        
+        container.innerHTML = `
+            <div class="col-12 text-center py-5">
+                <div class="spinner-border text-primary" role="status"></div>
+            </div>
+        `;
+        
+        try {
+            const stats = await statsAPI.getReadingStats();
+            
+            // Функция для создания карточки
+            const createStatCard = (title, value, icon, color) => `
+                <div class="col-md-4 col-lg-2">
+                    <div class="card h-100 text-center shadow-sm">
+                        <div class="card-body">
+                            <div class="display-4 mb-2">${icon}</div>
+                            <h2 class="card-title text-${color} fw-bold">${value}</h2>
+                            <p class="card-text text-muted small">${title}</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            container.innerHTML = `
+                ${createStatCard('Всего в библиотеке', stats.total_books, '📚', 'primary')}
+                ${createStatCard('Прочитано', stats.books_read, '✅', 'success')}
+                ${createStatCard('Читаю сейчас', stats.books_reading, '📖', 'info')}
+                ${createStatCard('В планах', stats.books_planned, '📅', 'secondary')}
+                ${createStatCard('Брошено', stats.books_dropped, '❌', 'danger')}
+                ${createStatCard('Средняя оценка', stats.average_rating, '⭐', 'warning')}
+            `;
+            
+        } catch (e) {
+            console.error('Ошибка загрузки статистики:', e);
+            container.innerHTML = `
+                <div class="col-12">
+                    <div class="alert alert-danger">❌ Ошибка загрузки статистики</div>
+                </div>
+            `;
         }
     }
 
@@ -178,9 +262,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Загружаем данные при открытии
     async function initDashboard(){
-        loadRecommendations();
-        loadFavorites();
-        loadReadingStatuses();
+        await loadRecommendations();
+        await loadFavorites();
+        await loadReadingStatuses();
+        await loadStats();
     }
 
     initDashboard();
@@ -191,6 +276,51 @@ document.addEventListener('DOMContentLoaded', async () => {
         logoutBtn.addEventListener('click', () => {
             localStorage.removeItem('accessToken');
             window.location.href = 'index.html';
+        });
+    }
+
+    // === ЭКСПОРТ БИБЛИОТЕКИ (только для админов) ===
+    const exportBtn = document.getElementById('exportBtn');
+    if (exportBtn) {
+        // Скрываем кнопку, если пользователь не админ
+        // (можно проверить через отдельный запрос или хранить роль в localStorage)
+        
+        exportBtn.addEventListener('click', async () => {
+            try {
+                const token = localStorage.getItem('accessToken');
+                
+                const response = await fetch(`${API_URL}/library/export`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (response.status === 403) {
+                    showToast('Доступ запрещен: только для администраторов', 'error');
+                    return;
+                }
+
+                if (!response.ok) {
+                    throw new Error('Ошибка сервера при экспорте');
+                }
+
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `library_${new Date().toISOString().slice(0,10)}.csv`;
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                window.URL.revokeObjectURL(url);
+
+                showToast('Библиотека успешно экспортирована!', 'success');
+                
+            } catch (e) {
+                console.error('Ошибка экспорта:', e);
+                showToast(`Ошибка экспорта: ${e.message}`, 'error');
+            }
         });
     }
 });

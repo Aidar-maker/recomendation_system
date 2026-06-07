@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Книжный Советник - Детали книги</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f8f9fa;
+        }
+        .book-cover-large {
+            max-height: 400px;
+            object-fit: cover;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        .book-info {
+            background: white;
+            border-radius: 10px;
+            padding: 30px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .chapter-list {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .chapter-item {
+            padding: 12px 15px;
+            border-bottom: 1px solid #e9ecef;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .chapter-item:hover {
+            background-color: #f8f9fa;
+        }
+        .chapter-item:last-child {
+            border-bottom: none;
+        }
+        .action-buttons .btn {
+            min-width: 140px;
+        }
+        .rating-stars {
+            font-size: 1.5rem;
+            cursor: pointer;
+        }
+        .rating-stars .star {
+            color: #dee2e6;
+            transition: color 0.2s;
+        }
+        .rating-stars .star.active {
+            color: #ffc107;
+        }
+        .rating-stars .star:hover {
+            color: #ffd700;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Навигация -->
+    <nav class="navbar navbar-dark bg-dark mb-4">
+        <div class="container">
+            <a class="navbar-brand" href="index.html">📚 Книжный Советник</a>
+            <div class="d-flex">
+                <a href="catalog.html" class="btn btn-outline-light me-2">📖 Каталог</a>
+                <a href="dashboard.html" class="btn btn-outline-light me-2"> Моя библиотека</a>
+                <button class="btn btn-outline-danger" id="logout-btn">Выйти</button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Основной контент -->
+    <div class="container">
+        <div class="row">
+            <!-- Левая колонка: обложка и действия -->
+            <div class="col-md-4">
+                <div class="book-info text-center">
+                    <img id="bookCover" src="" alt="Обложка книги" class="img-fluid book-cover-large mb-3"
+                         onerror="this.src='data:image/svg+xml;charset=UTF-8,' + encodeURIComponent('<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'300\' height=\'400\'><rect fill=\'%23e9ecef\' width=\'300\' height=\'400\'/><text fill=\'%236c757d\' font-family=\'Arial\' font-size=\'16\' x=\'50%25\' y=\'50%25\' text-anchor=\'middle\' dy=\'.3em\'>Нет обложки</text></svg>')">
+                    
+                    <!-- Кнопки действий -->
+                    <div class="action-buttons d-grid gap-2">
+                        <button id="startReadingBtn" class="btn btn-primary btn-lg">📖 Начать чтение</button>
+                        <button id="addToFavoritesBtn" class="btn btn-outline-danger">❤️ В избранное</button>
+                        <button id="setStatusBtn" class="btn btn-outline-success"> В планы</button>
+                    </div>
+
+                    <!-- Оценка -->
+                    <div class="mt-4">
+                        <h6>Ваша оценка:</h6>
+                        <div class="rating-stars" id="ratingStars">
+                            <span class="star" data-rating="1">★</span>
+                            <span class="star" data-rating="2">★</span>
+                            <span class="star" data-rating="3">★</span>
+                            <span class="star" data-rating="4">★</span>
+                            <span class="star" data-rating="5">★</span>
+                            <span class="star" data-rating="6">★</span>
+                            <span class="star" data-rating="7">★</span>
+                            <span class="star" data-rating="8">★</span>
+                            <span class="star" data-rating="9">★</span>
+                            <span class="star" data-rating="10">★</span>
+                        </div>
+                        <small class="text-muted" id="ratingText">Не оценено</small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Правая колонка: информация и главы -->
+            <div class="col-md-8">
+                <div class="book-info mb-4">
+                    <h1 id="bookTitle">Загрузка...</h1>
+                    <h4 class="text-muted mb-3" id="bookAuthor">Автор...</h4>
+                    
+                    <div class="row mb-3">
+                        <div class="col-6">
+                            <strong>Год издания:</strong> <span id="bookYear">—</span>
+                        </div>
+                        <div class="col-6">
+                            <strong>Издательство:</strong> <span id="bookPublisher">—</span>
+                        </div>
+                    </div>
+
+                    <hr>
+                    
+                    <h5>Описание:</h5>
+                    <p id="bookDescription" class="text-muted">Описание загружается...</p>
+                </div>
+
+                <!-- Список глав -->
+                <div class="chapter-list">
+                    <h4 class="mb-3">📑 Главы</h4>
+                    <div id="chaptersContainer">
+                        <div class="text-center py-3">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Загрузка...</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Скрипты -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/toast.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/user.js"></script>
+    <script src="js/book_detail.js"></script>
+
+</body>
+</html>

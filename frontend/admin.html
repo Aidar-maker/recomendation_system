@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Книжный Советник - Админка</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f8f9fa;
+        }
+        .admin-card {
+            background: white;
+            border-radius: 10px;
+            padding: 30px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+        }
+        .book-list-item {
+            padding: 15px;
+            border-bottom: 1px solid #e9ecef;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .book-list-item:hover {
+            background-color: #f8f9fa;
+        }
+        .book-list-item:last-child {
+            border-bottom: none;
+        }
+        .chapter-editor {
+            min-height: 300px;
+            font-family: 'Courier New', monospace;
+        }
+        .chapter-preview {
+            font-size: 1.1rem;
+            line-height: 1.8;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+        .chapter-preview h1, .chapter-preview h2, .chapter-preview h3 {
+            margin-top: 1.5em;
+            margin-bottom: 0.5em;
+        }
+        .chapter-preview p {
+            margin-bottom: 1em;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Навигация -->
+    <nav class="navbar navbar-dark bg-dark mb-4">
+        <div class="container">
+            <a class="navbar-brand" href="index.html">📚 Книжный Советник - Админка</a>
+            <div class="d-flex">
+                <a href="catalog.html" class="btn btn-outline-light me-2">📖 Каталог</a>
+                <a href="dashboard.html" class="btn btn-outline-light me-2"> Моя библиотека</a>
+                <button class="btn btn-outline-success me-2" id="exportBtn">📥 Экспорт CSV</button>
+                <button class="btn btn-outline-danger" id="logout-btn">Выйти</button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Основной контент -->
+    <div class="container">
+        
+        <!-- Вкладки -->
+        <ul class="nav nav-tabs mb-4" id="adminTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="create-book-tab" data-bs-toggle="tab" data-bs-target="#create-book-pane" type="button" role="tab">📕 Создать книгу</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="add-chapter-tab" data-bs-toggle="tab" data-bs-target="#add-chapter-pane" type="button" role="tab">📄 Добавить главу</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="books-list-tab" data-bs-toggle="tab" data-bs-target="#books-list-pane" type="button" role="tab">📚 Список книг</button>
+            </li>
+        </ul>
+
+        <!-- Содержимое вкладок -->
+        <div class="tab-content" id="adminTabsContent">
+            
+            <!-- 1. Создание книги -->
+            <div class="tab-pane fade show active" id="create-book-pane" role="tabpanel">
+                <div class="admin-card">
+                    <h4 class="mb-4">📕 Создание новой книги</h4>
+                    <form id="createBookForm">
+                        <div class="mb-3">
+                            <label for="bookTitle" class="form-label">Название книги *</label>
+                            <input type="text" class="form-control" id="bookTitle" required>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="bookAuthor" class="form-label">Автор *</label>
+                            <input type="text" class="form-control" id="bookAuthor" required>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="bookYear" class="form-label">Год издания</label>
+                                <input type="number" class="form-control" id="bookYear">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="bookPublisher" class="form-label">Издательство</label>
+                                <input type="text" class="form-control" id="bookPublisher">
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Обложка книги</label>
+                            
+                            <!-- Переключатель способа загрузки -->
+                            <div class="btn-group w-100 mb-3" role="group">
+                                <input type="radio" class="btn-check" name="coverType" id="coverTypeUrl" value="url" checked>
+                                <label class="btn btn-outline-primary" for="coverTypeUrl"> По URL</label>
+                                
+                                <input type="radio" class="btn-check" name="coverType" id="coverTypeFile" value="file">
+                                <label class="btn btn-outline-primary" for="coverTypeFile">📁 Загрузить файл</label>
+                            </div>
+                            
+                            <!-- Поле URL -->
+                            <div id="coverUrlGroup">
+                                <input type="url" class="form-control" id="bookImageUrl" placeholder="https://example.com/cover.jpg">
+                                <div class="form-text">Вставьте прямую ссылку на изображение</div>
+                            </div>
+                            
+                            <!-- Поле загрузки файла -->
+                            <div id="coverFileGroup" style="display: none;">
+                                <input type="file" class="form-control" id="bookImageFile" accept="image/jpeg,image/png,image/webp">
+                                <div class="form-text">Максимум 5 МБ. Форматы: JPEG, PNG, WebP</div>
+                            </div>
+                            
+                            <!-- Превью обложки -->
+                            <div class="mt-3 text-center" id="coverPreview" style="display: none;">
+                                <img id="coverPreviewImg" src="" alt="Превью обложки" class="img-fluid rounded" style="max-height: 300px;">
+                                <div class="mt-2">
+                                    <button type="button" class="btn btn-sm btn-outline-danger" id="clearCoverBtn">✕ Убрать обложку</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="bookDescription" class="form-label">Описание</label>
+                            <textarea class="form-control" id="bookDescription" rows="4"></textarea>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary btn-lg">✨ Создать книгу</button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- 2. Добавление главы -->
+            <div class="tab-pane fade" id="add-chapter-pane" role="tabpanel">
+                <div class="admin-card">
+                    <h4 class="mb-4">📄 Добавление главы</h4>
+                    <form id="addChapterForm">
+                        <div class="mb-3">
+                            <label for="selectBook" class="form-label">Выберите книгу *</label>
+                            <select class="form-select" id="selectBook" required>
+                                <option value="">Загрузка списка книг...</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="chapterTitle" class="form-label">Название главы *</label>
+                            <input type="text" class="form-control" id="chapterTitle" placeholder="Например: Глава 1: Начало" required>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="chapterOrder" class="form-label">Порядковый номер *</label>
+                            <input type="number" class="form-control" id="chapterOrder" value="0" min="0" required>
+                            <div class="form-text">Начинается с 0 (первая глава = 0)</div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="chapterContent" class="form-label">Содержание главы (HTML) *</label>
+                            <textarea class="form-control chapter-editor" id="chapterContent" rows="15" placeholder="<h1>Глава 1</h1><p>Текст главы...</p>" required></textarea>
+                            <div class="form-text">Можно использовать HTML-теги: &lt;p&gt;, &lt;h1&gt;-&lt;h3&gt;, &lt;b&gt;, &lt;i&gt; и т.д.</div>
+                        </div>
+
+                        <button type="submit" class="btn btn-success btn-lg">💾 Добавить главу</button>
+                        <button type="button" class="btn btn-info btn-lg ms-2" id="previewBtn">👁 Предпросмотр</button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- 3. Список книг -->
+            <div class="tab-pane fade" id="books-list-pane" role="tabpanel">
+                <div class="admin-card">
+                    <h4 class="mb-4">📚 Все книги</h4>
+                    <div id="booksListContainer">
+                        <div class="text-center py-5">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Загрузка...</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Модальное окно предпросмотра -->
+    <div class="modal fade" id="previewModal" tabindex="-1" aria-labelledby="previewModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="previewModalLabel">👁 Предпросмотр главы</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <h4 id="previewTitle" class="mb-3"></h4>
+                    <hr>
+                    <div id="previewContent" class="chapter-preview"></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Скрипты -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/toast.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/admin.js"></script>
+
+</body>
+</html>

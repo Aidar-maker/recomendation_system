@@ -5,6 +5,8 @@ from passlib.context import CryptContext
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from pydantic import BaseModel
+from .database import get_db_connection
+import pandas as pd
 
 # Конфигурация
 SECRET_KEY = "secret-ml-api-key-2024"
@@ -55,20 +57,38 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
 def authenticate_user(db, email: str, password: str):
     from .database import get_db_connection
     import pandas as pd
+    from sqlalchemy import text
     
     conn = get_db_connection()
-    query = "SELECT user_id, username, email, password_hash FROM users WHERE email = %s"
-    df = pd.read_sql_query(query, conn, params=(email,))
+    
+    try:
+        # Используем text() и именованные параметры
+        query = text("SELECT user_id, username, email, password_hash FROM users WHERE email = :email")
+        df = pd.read_sql_query(query, conn, params={"email": email})
+        
+        if df.empty:
+            return False
+        
+        user = df.iloc[0]
+        if not verify_password(password, user['password_hash']):
+            return False
+        
+        return {
+            "user_id": int(user['user_id']),
+            "username": user['username'],
+            "email": user['email']
+        }
+    finally:
+        conn.close()
+
+def is_admin(user_id: int) -> bool:
+    """Проверяет, является ли пользователь администратором"""
+    conn = get_db_connection()
+    query = "SELECT role FROM users WHERE user_id = %s"
+    df = pd.read_sql_query(query, conn, params=(user_id,))
+    conn.close()
     
     if df.empty:
         return False
     
-    user = df.iloc[0]
-    if not verify_password(password, user['password_hash']):
-        return False
-    
-    return {
-        "user_id": int(user['user_id']),
-        "username": user['username'],
-        "email": user['email']
-    }
+    return df.iloc[0]['role'] == 'admin'
