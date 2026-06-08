@@ -20,6 +20,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     const refreshRecBtn = document.getElementById('refresh-rec');
     const refreshFavBtn = document.getElementById('refresh-fav');
 
+    // === ОТКРЫТИЕ КНИГИ ===
+    function openBook(bookId) {
+        window.location.href = `book_detail.html?book=${bookId}`;
+    }
+    window.openBook = openBook;
+
     // Функции отрисовки
 
     // Создание HTML-карточки книги
@@ -31,16 +37,16 @@ document.addEventListener('DOMContentLoaded', async () => {
         
         if (type === 'recommendation') {
             actionButtons = `
-                <button class="btn btn-sm btn-outline-primary mt-2" onclick="addToFavorites(${book.book_id})">❤️ В избранное</button>
-                <button class="btn btn-sm btn-outline-success mt-2" onclick="setStatus(${book.book_id}, 2)">📖 Читаю</button>
+                <button class="btn btn-sm btn-outline-primary mt-2 me-1" onclick="event.stopPropagation(); addToFavorites(${book.book_id});">❤️ В избранное</button>
+                <button class="btn btn-sm btn-outline-success mt-2" onclick="event.stopPropagation(); setStatus(${book.book_id}, 2);">📖 Читаю</button>
             `;
         } else if (type === 'favorites') {
             actionButtons = `
-                <button class="btn btn-sm btn-outline-danger mt-2" onclick="removeFromFavorites(${book.book_id})">🗑 Удалить</button>
+                <button class="btn btn-sm btn-outline-danger mt-2" onclick="event.stopPropagation(); removeFromFavorites(${book.book_id});">🗑 Удалить</button>
             `;
         } else if (type === 'reading') {
             actionButtons = `
-                <select class="form-select form-select-sm mt-2" onchange="changeStatus(${book.book_id}, this.value)">
+                <select class="form-select form-select-sm mt-2" onchange="event.stopPropagation(); changeStatus(${book.book_id}, this.value);">
                     <option value="1" ${book.status == 1 ? 'selected' : ''}>📅 В планах</option>
                     <option value="2" ${book.status == 2 ? 'selected' : ''}>📖 Читаю</option>
                     <option value="3" ${book.status == 3 ? 'selected' : ''}>✅ Прочитано</option>
@@ -51,7 +57,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         return `
             <div class="col-md-4 mb-4">
-                <div class="card h-100 shadow-sm">
+                <div class="card h-100 shadow-sm book-card-clickable" style="cursor: pointer;" data-book-id="${book.book_id}">
                     <div class="card-body">
                         <h5 class="card-title">${book.title}</h5>
                         <h6 class="card-subtitle mb-2 text-muted">${book.author}</h6>
@@ -60,7 +66,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                             ${ratingBadge}
                         </div>
                         <p class="card-text small text-truncate">${book.description || 'Нет описания'}</p>
-                        ${actionButtons}
+                        <div class="card-actions">
+                            ${actionButtons}
+                        </div>
                     </div>
                 </div>
             </div>
@@ -84,8 +92,21 @@ document.addEventListener('DOMContentLoaded', async () => {
             container.innerHTML = '<div class="col-12 text-center text-muted py-5">Список пуст</div>';
             return;
         }
+        
+        // Создаём HTML для всех карточек
         const html = books.map(book => createBookCard(book, type)).join('');
         container.innerHTML = html;
+        
+        // Добавляем обработчики кликов на карточки ПОСЛЕ вставки в DOM
+        container.querySelectorAll('.book-card-clickable').forEach(card => {
+            card.addEventListener('click', function(e) {
+                // Проверяем что клик не по кнопкам
+                if (!e.target.closest('button') && !e.target.closest('select')) {
+                    const bookId = this.dataset.bookId;
+                    openBook(bookId);
+                }
+            });
+        });
     }
 
     // Загрузка данных
@@ -94,23 +115,17 @@ document.addEventListener('DOMContentLoaded', async () => {
             const continueBlock = document.getElementById('continueReadingBlock');
             if (!continueBlock) return;
 
-            // Получаем прогресс чтения по всем книгам
-            // Для этого нужно получить список книг со статусом "Читаю" (status=2)
-            const statusesData = await booksAPI.getStatuses(2); // 2 = "Читаю"
+            const statusesData = await booksAPI.getStatuses(2);
             
             if (statusesData.books.length === 0) {
                 continueBlock.style.display = 'none';
                 return;
             }
 
-            // Берём первую книгу (последнюю по updated_at)
             const lastBook = statusesData.books[0];
-            
-            // Получаем прогресс для этой книги
             const progress = await apiRequest(`/reading-progress/${lastBook.book_id}`);
             
             if (progress.chapter_id) {
-                // Показываем блок
                 document.getElementById('continueBookTitle').textContent = lastBook.title;
                 document.getElementById('continueReadingBtn').onclick = () => {
                     window.location.href = `reader.html?book=${lastBook.book_id}&chapter=${progress.chapter_id}`;
@@ -137,7 +152,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             const endTime = performance.now();
             
             console.log(`Получено ${data.length} книг за ${(endTime - startTime).toFixed(2)}ms`);
-            console.log('Данные:', data);
             
             const books = Array.isArray(data) ? data : []; 
             renderBooks(recommendationsContainer, books, 'recommendation');
@@ -168,7 +182,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
 
-        async function loadStats() {
+    async function loadStats() {
         const container = document.getElementById('statsContainer');
         if (!container) return;
         
@@ -181,7 +195,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         try {
             const stats = await statsAPI.getReadingStats();
             
-            // Функция для создания карточки
             const createStatCard = (title, value, icon, color) => `
                 <div class="col-md-4 col-lg-2">
                     <div class="card h-100 text-center shadow-sm">
@@ -218,10 +231,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     window.addToFavorites = async (bookId) => {
         try {
             await booksAPI.addFavorite(bookId);
-            alert('Добавлено в избранное!');
-            loadFavorites(); // Обновить список
+            showToast('Добавлено в избранное!', 'success');
+            loadFavorites();
         } catch (e) {
-            alert(e.message);
+            showToast(e.message, 'error');
         }
     };
 
@@ -229,38 +242,39 @@ document.addEventListener('DOMContentLoaded', async () => {
         if(!confirm('Удалить из избранного?')) return;
         try {
             await booksAPI.removeFavorite(bookId);
+            showToast('Удалено из избранного', 'success');
             loadFavorites();
         } catch (e) {
-            alert(e.message);
+            showToast(e.message, 'error');
         }
     };
 
     window.setStatus = async (bookId, status) => {
         try {
             await booksAPI.setStatus(bookId, status);
+            showToast('Статус установлен', 'success');
             loadReadingStatuses();
-            loadFavorites(); // Обновить и там, если книга там есть
+            loadFavorites();
         } catch (e) {
-            alert(e.message);
+            showToast(e.message, 'error');
         }
     };
 
     window.changeStatus = async (bookId, status) => {
         try {
             await booksAPI.setStatus(bookId, status);
+            showToast('Статус изменён', 'success');
             loadReadingStatuses();
         } catch (e) {
-            alert(e.message);
+            showToast(e.message, 'error');
         }
     };
 
     // Инициализирование
 
-    // Привязываем кнопки обновления
     if (refreshRecBtn) refreshRecBtn.addEventListener('click', loadRecommendations);
     if (refreshFavBtn) refreshFavBtn.addEventListener('click', loadFavorites);
 
-    // Загружаем данные при открытии
     async function initDashboard(){
         await loadRecommendations();
         await loadFavorites();
@@ -275,6 +289,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (logoutBtn) {
         logoutBtn.addEventListener('click', () => {
             localStorage.removeItem('accessToken');
+            localStorage.removeItem('userEmail');
             window.location.href = 'index.html';
         });
     }
@@ -282,9 +297,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     // === ЭКСПОРТ БИБЛИОТЕКИ (только для админов) ===
     const exportBtn = document.getElementById('exportBtn');
     if (exportBtn) {
-        // Скрываем кнопку, если пользователь не админ
-        // (можно проверить через отдельный запрос или хранить роль в localStorage)
-        
         exportBtn.addEventListener('click', async () => {
             try {
                 const token = localStorage.getItem('accessToken');
@@ -315,7 +327,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 a.remove();
                 window.URL.revokeObjectURL(url);
 
-                showToast('Библиотека успешно экспортирована!', 'success');
+                showToast('Библиотека экспортирована!', 'success');
                 
             } catch (e) {
                 console.error('Ошибка экспорта:', e);
