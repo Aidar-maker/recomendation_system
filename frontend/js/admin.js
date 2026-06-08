@@ -6,6 +6,26 @@ document.addEventListener('DOMContentLoaded', async () => {
         return;
     }
 
+    // Проверка прав админа
+    try {
+        const user = await userAPI.getMe();
+        
+        if (user.role !== 'admin') {
+            showToast('Доступ запрещён: требуются права администратора', 'error');
+            setTimeout(() => {
+                window.location.href = 'dashboard.html';
+            }, 1500);
+            return;
+        }
+        
+        localStorage.setItem('userRole', user.role);
+        
+    } catch (e) {
+        console.error('Ошибка проверки прав:', e);
+        window.location.href = 'dashboard.html';
+        return;
+    }
+
     // Элементы DOM
     const createBookForm = document.getElementById('createBookForm');
     const addChapterForm = document.getElementById('addChapterForm');
@@ -26,8 +46,35 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     let uploadedCoverUrl = null; // URL загруженного файла
     let allBooks = [];
+    let allGenres = [];
 
-        // Переключение между URL и файлом
+
+    // === ЗАГРУЗКА ЖАНРОВ ===
+    async function loadGenres() {
+        try {
+            const response = await apiRequest('/genres');
+            allGenres = response;
+            
+            const genresContainer = document.getElementById('genresContainer');
+            if (genresContainer) {
+                genresContainer.innerHTML = allGenres.map(genre => `
+                    <div class="col-md-4 col-lg-3">
+                        <div class="form-check">
+                            <input class="form-check-input genre-checkbox" type="checkbox" 
+                                   value="${genre.genre_id}" id="genre_${genre.genre_id}">
+                            <label class="form-check-label" for="genre_${genre.genre_id}">
+                                ${genre.genre_name}
+                            </label>
+                        </div>
+                    </div>
+                `).join('');
+            }
+        } catch (e) {
+            console.error('Ошибка загрузки жанров:', e);
+        }
+    }
+
+    // Переключение между URL и файлом
     if (coverTypeUrl && coverTypeFile) {
         coverTypeUrl.addEventListener('change', () => {
             if (coverTypeUrl.checked) {
@@ -209,10 +256,101 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
 
+    // === МОДЕРАЦИЯ ЗАПРОСОВ ===
+    async function loadModerationRequests(status = '') {
+        const container = document.getElementById('moderationContainer');
+        if (!container) return;
+
+        try {
+            const params = status ? `?status=${status}` : '';
+            const requests = await apiRequest(`/admin/moderation/requests${params}`);
+
+            if (requests.length === 0) {
+                container.innerHTML = '<p class="text-muted text-center">Нет запросов</p>';
+                return;
+            }
+
+            const statusColors = {
+                'pending': 'warning',
+                'approved': 'success',
+                'rejected': 'danger'
+            };
+
+            container.innerHTML = requests.map(req => `
+                <div class="border-bottom pb-3 mb-3">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <h5>${req.title}</h5>
+                            <p class="text-muted small">От: ${req.username} (${req.email})</p>
+                            <p>${req.description}</p>
+                            <span class="badge bg-${statusColors[req.status]}">${req.status}</span>
+                            ${req.admin_note ? `<p class="small mt-2"><b>Комментарий:</b> ${req.admin_note}</p>` : ''}
+                        </div>
+                        ${req.status === 'pending' ? `
+                            <div class="d-flex gap-2">
+                                <button class="btn btn-sm btn-success" onclick="approveRequest(${req.request_id})">✅ Одобрить</button>
+                                <button class="btn btn-sm btn-danger" onclick="rejectRequest(${req.request_id})">❌ Отклонить</button>
+                            </div>
+                        ` : ''}
+                    </div>
+                </div>
+            `).join('');
+
+        } catch (e) {
+            console.error('Ошибка загрузки модерации:', e);
+            container.innerHTML = '<p class="text-danger">Ошибка загрузки</p>';
+        }
+    }
+
+    // Одобрить запрос
+    window.approveRequest = async (requestId) => {
+        const note = prompt('Комментарий (необязательно):');
+        try {
+            await apiRequest(`/admin/moderation/${requestId}/decision`, {
+                method: 'PUT',
+                body: { status: 'approved', admin_note: note || null }
+            });
+            showToast('Запрос одобрен!', 'success');
+            await loadModerationRequests();
+        } catch (e) {
+            showToast(`Ошибка: ${e.message}`, 'error');
+        }
+    };
+
+    // Отклонить запрос
+    window.rejectRequest = async (requestId) => {
+        const note = prompt('Причина отклонения:');
+        if (!note) return;
+        try {
+            await apiRequest(`/admin/moderation/${requestId}/decision`, {
+                method: 'PUT',
+                body: { status: 'rejected', admin_note: note }
+            });
+            showToast('Запрос отклонён', 'success');
+            await loadModerationRequests();
+        } catch (e) {
+            showToast(`Ошибка: ${e.message}`, 'error');
+        }
+    };
+
+    // Фильтр модерации
+    const moderationFilter = document.getElementById('moderationFilter');
+    if (moderationFilter) {
+        moderationFilter.addEventListener('change', (e) => {
+            loadModerationRequests(e.target.value);
+        });
+    }
+
     // === СОЗДАНИЕ КНИГИ ===
     if (createBookForm) {
         createBookForm.addEventListener('submit', async (e) => {
             e.preventDefault();
+
+            // Собираем выбранные жанры
+            const selectedGenres = [];
+            document.querySelectorAll('.genre-checkbox:checked').forEach(checkbox => {
+                selectedGenres.push(parseInt(checkbox.value));
+            });
 
             // Определяем способ загрузки обложки
             let imageUrl = null;
@@ -263,7 +401,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                 year_publication: parseInt(document.getElementById('bookYear').value) || null,
                 publisher: document.getElementById('bookPublisher').value || null,
                 image_url: imageUrl,
-                description: document.getElementById('bookDescription').value || null
+                description: document.getElementById('bookDescription').value || null,
+                genre_ids: selectedGenres
             };
 
             const submitBtn = createBookForm.querySelector('button[type="submit"]');
@@ -423,6 +562,193 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     }
 
+    // === МОДЕРАЦИЯ ЗАЯВОК ПОЛЬЗОВАТЕЛЕЙ ===
+    let currentSubmissionType = 'books';
+
+    // Функция загрузки заявок
+    async function loadUserSubmissions(type = 'books') {
+        currentSubmissionType = type;
+        const container = document.getElementById('userSubmissionsContainer');
+        if (!container) return;
+
+        container.innerHTML = `
+            <div class="text-center py-5">
+                <div class="spinner-border text-primary" role="status"></div>
+            </div>
+        `;
+
+        try {
+            const endpoint = type === 'books' ? '/admin/submissions/books' : '/admin/submissions/chapters';
+            const submissions = await apiRequest(endpoint);
+
+            if (submissions.length === 0) {
+                container.innerHTML = '<p class="text-muted text-center">Нет заявок</p>';
+                return;
+            }
+
+            const statusColors = {
+                'pending': 'warning',
+                'approved': 'success',
+                'rejected': 'danger'
+            };
+
+            const statusTexts = {
+                'pending': ' На рассмотрении',
+                'approved': '✅ Одобрено',
+                'rejected': ' Отклонено'
+            };
+
+            let html = '';
+
+            if (type === 'books') {
+                html = submissions.map(sub => `
+                    <div class="border rounded p-3 mb-3 bg-white shadow-sm">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <h5 class="mb-0">${sub.title} <small class="text-muted">(${sub.author})</small></h5>
+                            <span class="badge bg-${statusColors[sub.status]}">${statusTexts[sub.status]}</span>
+                        </div>
+                        <p class="text-muted small mb-1">От: ${sub.username} (${sub.email}) • ${new Date(sub.created_at).toLocaleDateString('ru-RU')}</p>
+                        <p class="mb-1"><b>Год:</b> ${sub.year_publication || '—'} | <b>Издательство:</b> ${sub.publisher || '—'}</p>
+                        <p class="mb-2"><b>Описание:</b> ${sub.description || 'Нет описания'}</p>
+                        ${sub.genre_ids && sub.genre_ids.length > 0 ? `<p class="mb-2"><b>Жанры:</b> ${sub.genre_ids.map(id => `<span class="badge bg-secondary">ID ${id}</span>`).join(' ')}</p>` : ''}
+                        
+                        ${sub.admin_note ? `<div class="alert alert-light border mb-2"><small><b>Комментарий админа:</b> ${sub.admin_note}</small></div>` : ''}
+
+                        ${sub.status === 'pending' ? `
+                            <div class="d-flex gap-2 mt-2">
+                                <button class="btn btn-sm btn-success" onclick="approveBookSubmission(${sub.submission_id})">✅ Одобрить и создать книгу</button>
+                                <button class="btn btn-sm btn-outline-danger" onclick="rejectBookSubmission(${sub.submission_id})">❌ Отклонить</button>
+                            </div>
+                        ` : ''}
+                    </div>
+                `).join('');
+            } else {
+                html = submissions.map(sub => `
+                    <div class="border rounded p-3 mb-3 bg-white shadow-sm">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <h5 class="mb-0">${sub.chapter_title} <small class="text-muted">(для книги "${sub.book_title}")</small></h5>
+                            <span class="badge bg-${statusColors[sub.status]}">${statusTexts[sub.status]}</span>
+                        </div>
+                        <p class="text-muted small mb-1">От: ${sub.username} (${sub.email}) • Порядок: ${sub.order_number} • ${new Date(sub.created_at).toLocaleDateString('ru-RU')}</p>
+                        
+                        <div class="bg-light p-2 rounded mb-2" style="max-height: 150px; overflow-y: auto;">
+                            <small><b>Предпросмотр контента (HTML):</b></small>
+                            <hr class="my-1">
+                            ${sub.chapter_content.substring(0, 500)}${sub.chapter_content.length > 500 ? '...' : ''}
+                        </div>
+
+                        ${sub.admin_note ? `<div class="alert alert-light border mb-2"><small><b>Комментарий админа:</b> ${sub.admin_note}</small></div>` : ''}
+
+                        ${sub.status === 'pending' ? `
+                            <div class="d-flex gap-2 mt-2">
+                                <button class="btn btn-sm btn-success" onclick="approveChapterSubmission(${sub.submission_id})">✅ Одобрить и добавить главу</button>
+                                <button class="btn btn-sm btn-outline-danger" onclick="rejectChapterSubmission(${sub.submission_id})">❌ Отклонить</button>
+                            </div>
+                        ` : ''}
+                    </div>
+                `).join('');
+            }
+
+            container.innerHTML = html;
+
+        } catch (e) {
+            console.error('Ошибка загрузки заявок:', e);
+            container.innerHTML = '<p class="text-danger">Ошибка загрузки</p>';
+        }
+    }
+
+    // === ДЕЙСТВИЯ АДМИНА ===
+
+    // Одобрить книгу
+    window.approveBookSubmission = async (id) => {
+        const note = prompt('Комментарий (необязательно):');
+        try {
+            await apiRequest(`/admin/submissions/books/${id}/decision`, {
+                method: 'PUT',
+                body: { status: 'approved', admin_note: note || null }
+            });
+            showToast('Книга создана и заявка одобрена!', 'success');
+            loadUserSubmissions(currentSubmissionType);
+        } catch (e) {
+            showToast(`Ошибка: ${e.message}`, 'error');
+        }
+    };
+
+    // Отклонить книгу
+    window.rejectBookSubmission = async (id) => {
+        const note = prompt('Причина отклонения (обязательно):');
+        if (!note) return;
+        try {
+            await apiRequest(`/admin/submissions/books/${id}/decision`, {
+                method: 'PUT',
+                body: { status: 'rejected', admin_note: note }
+            });
+            showToast('Заявка отклонена', 'success');
+            loadUserSubmissions(currentSubmissionType);
+        } catch (e) {
+            showToast(`Ошибка: ${e.message}`, 'error');
+        }
+    };
+
+    // Одобрить главу
+    window.approveChapterSubmission = async (id) => {
+        const note = prompt('Комментарий (необязательно):');
+        try {
+            await apiRequest(`/admin/submissions/chapters/${id}/decision`, {
+                method: 'PUT',
+                body: { status: 'approved', admin_note: note || null }
+            });
+            showToast('Глава добавлена и заявка одобрена!', 'success');
+            loadUserSubmissions(currentSubmissionType);
+        } catch (e) {
+            showToast(`Ошибка: ${e.message}`, 'error');
+        }
+    };
+
+    // Отклонить главу
+    window.rejectChapterSubmission = async (id) => {
+        const note = prompt('Причина отклонения (обязательно):');
+        if (!note) return;
+        try {
+            await apiRequest(`/admin/submissions/chapters/${id}/decision`, {
+                method: 'PUT',
+                body: { status: 'rejected', admin_note: note }
+            });
+            showToast('Заявка отклонена', 'success');
+            loadUserSubmissions(currentSubmissionType);
+        } catch (e) {
+            showToast(`Ошибка: ${e.message}`, 'error');
+        }
+    };
+
+    // Обработчики вкладок "Книги" / "Главы" в заявках пользователей
+    document.querySelectorAll('[data-submission-type]').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('[data-submission-type]').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            loadUserSubmissions(btn.dataset.submissionType);
+        });
+    });
+
+    // Загрузка заявок при переключении на вкладку "Заявки пользователей"
+    const userSubmissionsTab = document.getElementById('user-submissions-tab');
+    if (userSubmissionsTab) {
+        userSubmissionsTab.addEventListener('shown.bs.tab', () => {
+            loadUserSubmissions('books');
+        });
+    }
+
+    // Загружаем модерацию при переключении на вкладку
+    const moderationTab = document.getElementById('moderation-tab');
+    if (moderationTab) {
+        moderationTab.addEventListener('shown.bs.tab', () => {
+            loadModerationRequests();
+        });
+    }
+
     // === ИНИЦИАЛИЗАЦИЯ ===
-    await loadBooksList();
+    await Promise.all([
+        loadGenres(),
+        loadBooksList()
+    ]);
 });

@@ -59,6 +59,20 @@ class UserStats(BaseModel):
     books_dropped: int
     average_rating: float
 
+class UserChapterSubmissionCreate(BaseModel):
+    book_id: int
+    chapter_title: str
+    chapter_content: str
+    order_number: float
+    chapter_id: Optional[int] = None
+    is_edit: bool = False
+
+class UserInfo(BaseModel):
+    user_id: int
+    username: str
+    email: str
+    role: str
+
 class ChapterCreate(BaseModel):
     title: str
     content_html: str
@@ -70,6 +84,8 @@ class BookCreate(BaseModel):
     description: Optional[str] = None
     image_url: Optional[str] = None
     year_publication: Optional[int] = None
+    genre_ids: List[int] = []
+    created_by: Optional[int] = None
 
 class ProgressUpdate(BaseModel):
     chapter_id: int
@@ -78,7 +94,7 @@ class ProgressUpdate(BaseModel):
 class ChapterResponse(BaseModel):
     chapter_id: int
     title: str
-    order_number: int
+    order_number: float
     # content_html: str 
 
 class BookDetailResponse(BaseModel):
@@ -110,6 +126,34 @@ class GenreRecommendationRequest(BaseModel):
 class SimilarBooksRequest(BaseModel):
     book_id: int
     limit: int = 5
+
+# === МОДЕЛИ ДЛЯ ПОЛЬЗОВАТЕЛЬСКИХ ЗАЯВОК ===
+
+class UserBookSubmissionCreate(BaseModel):
+    title: str
+    author: str
+    description: Optional[str] = None
+    year_publication: Optional[int] = None
+    publisher: Optional[str] = None
+    image_url: Optional[str] = None
+    genre_ids: List[int] = []
+
+class UserChapterSubmissionCreate(BaseModel):
+    book_id: int
+    chapter_title: str
+    chapter_content: str
+    order_number: float
+    chapter_ip: Optional[str] = None
+    is_edit: bool = False  
+
+class SubmissionResponse(BaseModel):
+    submission_id: int
+    user_id: int
+    title: Optional[str] = None
+    status: str
+    admin_note: Optional[str] = None
+    created_at: Optional[str] = None
+
 
 # === МОДЕЛИ ДЛЯ СПИСКОВ КНИГ ===
 
@@ -152,6 +196,9 @@ class RatingUpdate(BaseModel):
 class StatusUpdate(BaseModel):
     status: int = Field(..., ge=1, le=4)
 
+class BookGenresUpdate(BaseModel):
+    genre_ids: List[int] = []
+
 # === МОДЕЛИ ДЛЯ КАТАЛОГА ===
 
 class BookListItem(BaseModel):
@@ -167,6 +214,25 @@ class BookListItem(BaseModel):
 class BooksCatalogResponse(BaseModel):
     books: List[BookListItem]
     total: int
+
+# === МОДЕЛИ ДЛЯ МОДЕРАЦИИ ===
+
+class ModerationRequestCreate(BaseModel):
+    title: str
+    description: str
+
+class ModerationRequestResponse(BaseModel):
+    request_id: int
+    user_id: int
+    title: str
+    description: str
+    status: str
+    admin_note: Optional[str] = None
+    created_at: Optional[str] = None
+
+class ModerationDecision(BaseModel):
+    status: str  # 'approved' или 'rejected'
+    admin_note: Optional[str] = None
 
 # === ВСПОМОГАТЕЛЬНАЯ ФУНКЦИЯ ===
 
@@ -748,7 +814,6 @@ async def create_book(
     book_data: BookCreate,
     user_id: int = Depends(get_current_user_id)
 ):
-    # Проверка прав админа
     if not is_admin(user_id):
         raise HTTPException(status_code=403, detail="Доступ запрещен: нужны права администратора")
     
@@ -756,10 +821,9 @@ async def create_book(
         from .database import get_db_connection
         conn = get_db_connection()
         
-        # Используем text для SQLAlchemy 2.0 совместимости
         query = text("""
-            INSERT INTO books (title, author, description, image_url, year_publication)
-            VALUES (:title, :author, :description, :image_url, :year_publication)
+            INSERT INTO books (title, author, description, image_url, year_publication, created_by)
+            VALUES (:title, :author, :description, :image_url, :year_publication, :created_by)
         """)
         
         result = conn.execute(query, {
@@ -767,11 +831,22 @@ async def create_book(
             "author": book_data.author,
             "description": book_data.description,
             "image_url": book_data.image_url,
-            "year_publication": book_data.year_publication
+            "year_publication": book_data.year_publication,
+            "created_by": book_data.created_by or user_id  # ← Сохраняем создателя
         })
         conn.commit()
         
         new_book_id = result.lastrowid
+        
+        # Добавляем жанры
+        if book_data.genre_ids:
+            for genre_id in book_data.genre_ids:
+                insert_genre = text("""
+                    INSERT INTO book_genre (book_id, genre_id)
+                    VALUES (:book_id, :genre_id)
+                """)
+                conn.execute(insert_genre, {"book_id": new_book_id, "genre_id": genre_id})
+            conn.commit()
         
         return {
             "book_id": new_book_id,
@@ -890,14 +965,41 @@ async def get_chapter_content(book_id: int, chapter_id: int):
         if df.empty:
             raise HTTPException(status_code=404, detail="Глава не найдена")
         
+        # Получаем ВСЕ главы книги для выпадающего списка
+        all_chapters_query = text("""
+            SELECT chapter_id, title, order_number
+            FROM chapters
+            WHERE book_id = :book_id
+            ORDER BY order_number ASC
+        """)
+        
+        all_chapters_df = pd.read_sql_query(all_chapters_query, conn, params={"book_id": book_id})
+        all_chapters = []
+        if not all_chapters_df.empty:
+            for _, row in all_chapters_df.iterrows():
+                # Форматируем номер главы: 0 -> "Глава 1", 0.5 -> "Глава 0.5", 1 -> "Глава 2"
+                order_num = float(row['order_number'])
+                if order_num == int(order_num):
+                    display_num = int(order_num) + 1  # 0 -> 1, 1 -> 2 и т.д.
+                else:
+                    display_num = order_num
+                
+                all_chapters.append({
+                    "chapter_id": int(row['chapter_id']),
+                    "title": row['title'],
+                    "order_number": order_num,
+                    "display_name": f"Глава {display_num}"
+                })
+        
         row = df.iloc[0]
         return {
             "chapter_id": int(row['chapter_id']),
             "title": row['title'],
             "content_html": row['content_html'],
-            "order_number": int(row['order_number']),
+            "order_number": float(row['order_number']),
             "prev_chapter_id": int(row['prev_chapter_id']) if pd.notna(row['prev_chapter_id']) else None,
-            "next_chapter_id": int(row['next_chapter_id']) if pd.notna(row['next_chapter_id']) else None
+            "next_chapter_id": int(row['next_chapter_id']) if pd.notna(row['next_chapter_id']) else None,
+            "all_chapters": all_chapters  # ← Добавили список всех глав
         }
     except HTTPException:
         raise
@@ -1243,22 +1345,22 @@ async def export_library(user_id: int = Depends(get_current_user_id)):
         # Используем UNION для объединения данных
         query = text("""
             SELECT DISTINCT
-                b.book_id,
                 b.title,
                 b.author,
-                b.description,
-                b.year_publication,
                 COALESCE(rs.status, 0) as status,
                 COALESCE(r.rating, 0) as rating,
-                COALESCE(f.added_at, b.created_at) as date_added,
-                'Избранное' as source
+                COALESCE(f.added_at, b.created_at) as date_added
             FROM books b
-            LEFT JOIN favorites f ON b.book_id = f.book_id AND f.user_id = :user_id
+            INNER JOIN (
+                SELECT book_id FROM favorites WHERE user_id = :user_id
+                UNION
+                SELECT book_id FROM reading_statuses WHERE user_id = :user_id
+                UNION
+                SELECT book_id FROM ratings WHERE user_id = :user_id
+            ) user_books ON b.book_id = user_books.book_id
             LEFT JOIN reading_statuses rs ON b.book_id = rs.book_id AND rs.user_id = :user_id
             LEFT JOIN ratings r ON b.book_id = r.book_id AND r.user_id = :user_id
-            WHERE f.user_id = :user_id 
-               OR rs.user_id = :user_id 
-               OR r.user_id = :user_id
+            LEFT JOIN favorites f ON b.book_id = f.book_id AND f.user_id = :user_id
             ORDER BY date_added DESC
         """)
         
@@ -1315,3 +1417,804 @@ async def export_library(user_id: int = Depends(get_current_user_id)):
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.put("/api/v1/admin/books/{book_id}/genres")
+async def update_book_genres(
+    book_id: int,
+    genres_data: BookGenresUpdate,
+    user_id: int = Depends(get_current_user_id)
+):
+    """Обновить жанры книги"""
+    if not is_admin(user_id):
+        raise HTTPException(status_code=403, detail="Доступ запрещен: нужны права администратора")
+    
+    try:
+        from .database import get_db_connection
+        conn = get_db_connection()
+        
+        # Проверяем существование книги
+        check_query = text("SELECT book_id FROM books WHERE book_id = :book_id")
+        check = conn.execute(check_query, {"book_id": book_id}).fetchone()
+        if not check:
+            raise HTTPException(status_code=404, detail="Книга не найдена")
+        
+        # Удаляем старые жанры
+        delete_query = text("DELETE FROM book_genre WHERE book_id = :book_id")
+        conn.execute(delete_query, {"book_id": book_id})
+        
+        # Добавляем новые жанры
+        if genres_data.genre_ids:
+            for genre_id in genres_data.genre_ids:
+                insert_query = text("""
+                    INSERT INTO book_genre (book_id, genre_id)
+                    VALUES (:book_id, :genre_id)
+                """)
+                conn.execute(insert_query, {"book_id": book_id, "genre_id": genre_id})
+        
+        conn.commit()
+        
+        return {"message": "Жанры обновлены", "book_id": book_id, "genre_ids": genres_data.genre_ids}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        conn.close()
+
+
+# === ЭНДПОИНТЫ ДЛЯ МОДЕРАЦИИ ===
+
+@app.post("/api/v1/moderation/request", response_model=dict)
+async def create_moderation_request(
+    request_data: ModerationRequestCreate,
+    user_id: int = Depends(get_current_user_id)
+):
+    """Пользователь подаёт запрос на модерацию"""
+    try:
+        from .database import get_db_connection
+        conn = get_db_connection()
+        
+        query = text("""
+            INSERT INTO moderation_requests (user_id, title, description)
+            VALUES (:user_id, :title, :description)
+        """)
+        
+        result = conn.execute(query, {
+            "user_id": user_id,
+            "title": request_data.title,
+            "description": request_data.description
+        })
+        conn.commit()
+        
+        return {
+            "message": "Запрос отправлен на модерацию",
+            "request_id": result.lastrowid
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        conn.close()
+
+@app.get("/api/v1/moderation/my-requests", response_model=List[ModerationRequestResponse])
+async def get_my_moderation_requests(
+    user_id: int = Depends(get_current_user_id)
+):
+    """Пользователь видит свои запросы"""
+    try:
+        from .database import get_db_connection
+        conn = get_db_connection()
+        
+        query = text("""
+            SELECT request_id, user_id, title, description, status, admin_note, created_at
+            FROM moderation_requests
+            WHERE user_id = :user_id
+            ORDER BY created_at DESC
+        """)
+        
+        df = pd.read_sql_query(query, conn, params={"user_id": user_id})
+        
+        if df.empty:
+            return []
+        
+        requests = []
+        for _, row in df.iterrows():
+            requests.append({
+                "request_id": int(row['request_id']),
+                "user_id": int(row['user_id']),
+                "title": row['title'],
+                "description": row['description'],
+                "status": row['status'],
+                "admin_note": row['admin_note'] if pd.notna(row['admin_note']) else None,
+                "created_at": row['created_at'].isoformat() if pd.notna(row['created_at']) else None
+            })
+        
+        return requests
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        conn.close()
+
+@app.get("/api/v1/admin/moderation/requests", response_model=List[ModerationRequestResponse])
+async def get_all_moderation_requests(
+    status: Optional[str] = None,
+    user_id: int = Depends(get_current_user_id)
+):
+    """Админ видит все запросы на модерацию"""
+    if not is_admin(user_id):
+        raise HTTPException(status_code=403, detail="Доступ запрещен: нужны права администратора")
+    
+    try:
+        from .database import get_db_connection
+        conn = get_db_connection()
+        
+        query = """
+            SELECT mr.request_id, mr.user_id, u.username, u.email,
+                   mr.title, mr.description, mr.status, mr.admin_note, mr.created_at
+            FROM moderation_requests mr
+            JOIN users u ON mr.user_id = u.user_id
+        """
+        
+        params = {}
+        if status:
+            query += " WHERE mr.status = :status"
+            params["status"] = status
+        
+        query += " ORDER BY mr.created_at DESC"
+        
+        df = pd.read_sql_query(text(query), conn, params=params)
+        
+        if df.empty:
+            return []
+        
+        requests = []
+        for _, row in df.iterrows():
+            requests.append({
+                "request_id": int(row['request_id']),
+                "user_id": int(row['user_id']),
+                "username": row['username'],
+                "email": row['email'],
+                "title": row['title'],
+                "description": row['description'],
+                "status": row['status'],
+                "admin_note": row['admin_note'] if pd.notna(row['admin_note']) else None,
+                "created_at": row['created_at'].isoformat() if pd.notna(row['created_at']) else None
+            })
+        
+        return requests
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        conn.close()
+
+@app.put("/api/v1/admin/moderation/{request_id}/decision")
+async def moderate_request(
+    request_id: int,
+    decision: ModerationDecision,
+    user_id: int = Depends(get_current_user_id)
+):
+    """Админ принимает решение по запросу"""
+    if not is_admin(user_id):
+        raise HTTPException(status_code=403, detail="Доступ запрещен: нужны права администратора")
+    
+    try:
+        from .database import get_db_connection
+        conn = get_db_connection()
+        
+        # Проверяем существование запроса
+        check_query = text("SELECT request_id FROM moderation_requests WHERE request_id = :request_id")
+        check = conn.execute(check_query, {"request_id": request_id}).fetchone()
+        if not check:
+            raise HTTPException(status_code=404, detail="Запрос не найден")
+        
+        # Обновляем статус
+        update_query = text("""
+            UPDATE moderation_requests
+            SET status = :status, admin_note = :admin_note
+            WHERE request_id = :request_id
+        """)
+        
+        conn.execute(update_query, {
+            "request_id": request_id,
+            "status": decision.status,
+            "admin_note": decision.admin_note
+        })
+        conn.commit()
+        
+        return {"message": f"Запрос {decision.status}", "request_id": request_id}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        conn.close()
+
+@app.get("/api/v1/auth/me", response_model=UserInfo)
+async def get_current_user(user_id: int = Depends(get_current_user_id)):
+    """Получить информацию о текущем пользователе"""
+    try:
+        from .database import get_db_connection
+        conn = get_db_connection()
+        
+        query = text("SELECT user_id, username, email, role FROM users WHERE user_id = :user_id")
+        df = pd.read_sql_query(query, conn, params={"user_id": user_id})
+        
+        if df.empty:
+            raise HTTPException(status_code=404, detail="Пользователь не найден")
+        
+        row = df.iloc[0]
+        return {
+            "user_id": int(row['user_id']),
+            "username": row['username'],
+            "email": row['email'],
+            "role": row['role']
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        conn.close()
+
+# === ЭНДПОИНТЫ ДЛЯ ЗАЯВОК НА КНИГИ ===
+
+@app.post("/api/v1/submissions/books", response_model=dict)
+async def create_book_submission(
+    submission: UserBookSubmissionCreate,
+    user_id: int = Depends(get_current_user_id)
+):
+    """Пользователь подаёт заявку на создание книги"""
+    try:
+        from .database import get_db_connection
+        import json
+        conn = get_db_connection()
+        
+        query = text("""
+            INSERT INTO user_book_submissions 
+            (user_id, title, author, description, year_publication, publisher, image_url, genre_ids)
+            VALUES (:user_id, :title, :author, :description, :year_publication, :publisher, :image_url, :genre_ids)
+        """)
+        
+        result = conn.execute(query, {
+            "user_id": user_id,
+            "title": submission.title,
+            "author": submission.author,
+            "description": submission.description,
+            "year_publication": submission.year_publication,
+            "publisher": submission.publisher,
+            "image_url": submission.image_url,
+            "genre_ids": json.dumps(submission.genre_ids)
+        })
+        conn.commit()
+        
+        return {
+            "message": "Заявка на создание книги отправлена на модерацию",
+            "submission_id": result.lastrowid
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        conn.close()
+
+@app.get("/api/v1/submissions/my-books", response_model=List[SubmissionResponse])
+async def get_my_book_submissions(
+    user_id: int = Depends(get_current_user_id)
+):
+    """Пользователь видит свои заявки на книги"""
+    try:
+        from .database import get_db_connection
+        conn = get_db_connection()
+        
+        query = text("""
+            SELECT submission_id, user_id, title, status, admin_note, created_at
+            FROM user_book_submissions
+            WHERE user_id = :user_id
+            ORDER BY created_at DESC
+        """)
+        
+        df = pd.read_sql_query(query, conn, params={"user_id": user_id})
+        
+        if df.empty:
+            return []
+        
+        submissions = []
+        for _, row in df.iterrows():
+            submissions.append({
+                "submission_id": int(row['submission_id']),
+                "user_id": int(row['user_id']),
+                "title": row['title'],
+                "status": row['status'],
+                "admin_note": row['admin_note'] if pd.notna(row['admin_note']) else None,
+                "created_at": row['created_at'].isoformat() if pd.notna(row['created_at']) else None
+            })
+        
+        return submissions
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        conn.close()
+
+# === ЭНДПОИНТЫ ДЛЯ ЗАЯВОК НА ГЛАВЫ ===
+@app.post("/api/v1/submissions/chapters", response_model=dict)
+async def create_chapter_submission(
+    submission: UserChapterSubmissionCreate,
+    user_id: int = Depends(get_current_user_id)
+):
+    """Пользователь подаёт заявку на добавление или редактирование главы"""
+    try:
+        from .database import get_db_connection
+        conn = get_db_connection()
+        
+        if submission.is_edit and submission.chapter_id:
+            # РЕДАКТИРОВАНИЕ существующей главы
+            check_query = text("""
+                SELECT c.chapter_id, c.book_id, b.created_by 
+                FROM chapters c
+                JOIN books b ON c.book_id = b.book_id
+                WHERE c.chapter_id = :chapter_id
+            """)
+            check = conn.execute(check_query, {
+                "chapter_id": submission.chapter_id
+            }).fetchone()
+            
+            if not check:
+                raise HTTPException(status_code=404, detail="Глава не найдена")
+            
+            # Проверка прав
+            if check.created_by != user_id:
+                user_info_query = text("SELECT role FROM users WHERE user_id = :user_id")
+                user_info = conn.execute(user_info_query, {"user_id": user_id}).fetchone()
+                
+                if not user_info or user_info.role != 'admin':
+                    raise HTTPException(status_code=403, detail="Нет прав на редактирование этой главы")
+            
+            # Получаем текущие данные главы
+            current_chapter_query = text("""
+                SELECT title, content_html, order_number FROM chapters WHERE chapter_id = :chapter_id
+            """)
+            current = conn.execute(current_chapter_query, {
+                "chapter_id": submission.chapter_id
+            }).fetchone()
+            
+            query = text("""
+                INSERT INTO user_chapter_submissions 
+                (user_id, book_id, chapter_id, chapter_title, chapter_content, order_number, 
+                 original_title, original_content, original_order_number)
+                VALUES (:user_id, :book_id, :chapter_id, :chapter_title, :chapter_content, :order_number,
+                        :orig_title, :orig_content, :orig_order)
+            """)
+            
+            result = conn.execute(query, {
+                "user_id": user_id,
+                "book_id": check.book_id,
+                "chapter_id": submission.chapter_id,
+                "chapter_title": submission.chapter_title,
+                "chapter_content": submission.chapter_content,
+                "order_number": submission.order_number,
+                "orig_title": current.title,
+                "orig_content": current.content_html,
+                "orig_order": float(current.order_number)
+            })
+            
+        else:
+            # СОЗДАНИЕ новой главы (старый код)
+            check_query = text("""
+                SELECT book_id, created_by FROM books WHERE book_id = :book_id
+            """)
+            check = conn.execute(check_query, {"book_id": submission.book_id}).fetchone()
+            
+            if not check:
+                raise HTTPException(status_code=404, detail="Книга не найдена")
+            
+            if check.created_by != user_id:
+                user_info_query = text("SELECT role FROM users WHERE user_id = :user_id")
+                user_info = conn.execute(user_info_query, {"user_id": user_id}).fetchone()
+                
+                if not user_info or user_info.role != 'admin':
+                    raise HTTPException(status_code=403, detail="Вы не можете добавлять главы к этой книге")
+            
+            query = text("""
+                INSERT INTO user_chapter_submissions 
+                (user_id, book_id, chapter_title, chapter_content, order_number)
+                VALUES (:user_id, :book_id, :chapter_title, :chapter_content, :order_number)
+            """)
+            
+            result = conn.execute(query, {
+                "user_id": user_id,
+                "book_id": submission.book_id,
+                "chapter_title": submission.chapter_title,
+                "chapter_content": submission.chapter_content,
+                "order_number": submission.order_number
+            })
+        
+        conn.commit()
+        
+        action = "редактирование" if submission.is_edit else "добавление"
+        return {
+            "message": f"Заявка на {action} главы отправлена на модерацию",
+            "submission_id": result.lastrowid
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        conn.close()
+
+@app.get("/api/v1/submissions/my-chapters", response_model=List[dict])
+async def get_my_chapter_submissions(
+    user_id: int = Depends(get_current_user_id)
+):
+    """Пользователь видит свои заявки на главы"""
+    try:
+        from .database import get_db_connection
+        conn = get_db_connection()
+        
+        query = text("""
+            SELECT cs.submission_id, cs.user_id, cs.book_id, b.title as book_title,
+                   cs.chapter_title, cs.status, cs.admin_note, cs.created_at
+            FROM user_chapter_submissions cs
+            JOIN books b ON cs.book_id = b.book_id
+            WHERE cs.user_id = :user_id
+            ORDER BY cs.created_at DESC
+        """)
+        
+        df = pd.read_sql_query(query, conn, params={"user_id": user_id})
+        
+        if df.empty:
+            return []
+        
+        submissions = []
+        for _, row in df.iterrows():
+            submissions.append({
+                "submission_id": int(row['submission_id']),
+                "user_id": int(row['user_id']),
+                "book_id": int(row['book_id']),
+                "book_title": row['book_title'],
+                "chapter_title": row['chapter_title'],
+                "status": row['status'],
+                "admin_note": row['admin_note'] if pd.notna(row['admin_note']) else None,
+                "created_at": row['created_at'].isoformat() if pd.notna(row['created_at']) else None
+            })
+        
+        return submissions
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        conn.close()
+
+# === АДМИНСКИЕ ЭНДПОИНТЫ ДЛЯ МОДЕРАЦИИ ===
+
+@app.get("/api/v1/admin/submissions/books", response_model=List[dict])
+async def get_all_book_submissions(
+    status: Optional[str] = None,
+    user_id: int = Depends(get_current_user_id)
+):
+    """Админ видит все заявки на книги"""
+    if not is_admin(user_id):
+        raise HTTPException(status_code=403, detail="Доступ запрещен")
+    
+    try:
+        from .database import get_db_connection
+        import json
+        conn = get_db_connection()
+        
+        query = """
+            SELECT s.submission_id, s.user_id, u.username, u.email,
+                   s.title, s.author, s.description, s.year_publication,
+                   s.publisher, s.image_url, s.genre_ids, s.status,
+                   s.admin_note, s.created_at
+            FROM user_book_submissions s
+            JOIN users u ON s.user_id = u.user_id
+        """
+        
+        params = {}
+        if status:
+            query += " WHERE s.status = :status"
+            params["status"] = status
+        
+        query += " ORDER BY s.created_at DESC"
+        
+        df = pd.read_sql_query(text(query), conn, params=params)
+        
+        if df.empty:
+            return []
+        
+        submissions = []
+        for _, row in df.iterrows():
+            submissions.append({
+                "submission_id": int(row['submission_id']),
+                "user_id": int(row['user_id']),
+                "username": row['username'],
+                "email": row['email'],
+                "title": row['title'],
+                "author": row['author'],
+                "description": row['description'],
+                "year_publication": int(row['year_publication']) if pd.notna(row['year_publication']) else None,
+                "publisher": row['publisher'],
+                "image_url": row['image_url'],
+                "genre_ids": json.loads(row['genre_ids']) if pd.notna(row['genre_ids']) else [],
+                "status": row['status'],
+                "admin_note": row['admin_note'] if pd.notna(row['admin_note']) else None,
+                "created_at": row['created_at'].isoformat() if pd.notna(row['created_at']) else None
+            })
+        
+        return submissions
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        conn.close()
+
+@app.put("/api/v1/admin/submissions/books/{submission_id}/decision")
+async def moderate_book_submission(
+    submission_id: int,
+    decision: dict,  # {"status": "approved"|"rejected", "admin_note": "..."}
+    user_id: int = Depends(get_current_user_id)
+):
+    """Админ одобряет/отклоняет заявку на книгу"""
+    if not is_admin(user_id):
+        raise HTTPException(status_code=403, detail="Доступ запрещен")
+    
+    try:
+        from .database import get_db_connection
+        import json
+        conn = get_db_connection()
+        
+        # Проверяем существование
+        check_query = text("SELECT * FROM user_book_submissions WHERE submission_id = :id")
+        check = conn.execute(check_query, {"id": submission_id}).fetchone()
+        if not check:
+            raise HTTPException(status_code=404, detail="Заявка не найдена")
+        
+        new_status = decision.get("status")
+        admin_note = decision.get("admin_note")
+        
+        if new_status == "approved":
+            # Создаём книгу
+            book_query = text("""
+                INSERT INTO books (title, author, description, year_publication, publisher, image_url, created_by)
+                VALUES (:title, :author, :description, :year_publication, :publisher, :image_url, :created_by)
+            """)
+
+            book_result = conn.execute(book_query, {
+                "title": check.title,
+                "author": check.author,
+                "description": check.description,
+                "year_publication": check.year_publication,
+                "publisher": check.publisher,
+                "image_url": check.image_url,
+                "created_by": check.user_id 
+            })
+            conn.commit()
+            
+            new_book_id = book_result.lastrowid
+            
+            # Добавляем жанры
+            genre_ids = json.loads(check.genre_ids) if check.genre_ids else []
+            for genre_id in genre_ids:
+                genre_query = text("""
+                    INSERT INTO book_genre (book_id, genre_id)
+                    VALUES (:book_id, :genre_id)
+                """)
+                conn.execute(genre_query, {"book_id": new_book_id, "genre_id": genre_id})
+            conn.commit()
+        
+        # Обновляем статус заявки
+        update_query = text("""
+            UPDATE user_book_submissions
+            SET status = :status, admin_note = :admin_note
+            WHERE submission_id = :submission_id
+        """)
+        
+        conn.execute(update_query, {
+            "submission_id": submission_id,
+            "status": new_status,
+            "admin_note": admin_note
+        })
+        conn.commit()
+        
+        return {
+            "message": f"Заявка {new_status}",
+            "submission_id": submission_id,
+            "book_id": new_book_id if new_status == "approved" else None
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        conn.close()
+
+@app.get("/api/v1/admin/submissions/chapters", response_model=List[dict])
+async def get_all_chapter_submissions(
+    status: Optional[str] = None,
+    user_id: int = Depends(get_current_user_id)
+):
+    """Админ видит все заявки на главы"""
+    if not is_admin(user_id):
+        raise HTTPException(status_code=403, detail="Доступ запрещен")
+    
+    try:
+        from .database import get_db_connection
+        conn = get_db_connection()
+        
+        query = """
+            SELECT cs.submission_id, cs.user_id, u.username, u.email,
+                   cs.book_id, b.title as book_title,
+                   cs.chapter_title, cs.chapter_content, cs.order_number,
+                   cs.status, cs.admin_note, cs.created_at
+            FROM user_chapter_submissions cs
+            JOIN users u ON cs.user_id = u.user_id
+            JOIN books b ON cs.book_id = b.book_id
+        """
+        
+        params = {}
+        if status:
+            query += " WHERE cs.status = :status"
+            params["status"] = status
+        
+        query += " ORDER BY cs.created_at DESC"
+        
+        df = pd.read_sql_query(text(query), conn, params=params)
+        
+        if df.empty:
+            return []
+        
+        submissions = []
+        for _, row in df.iterrows():
+            submissions.append({
+                "submission_id": int(row['submission_id']),
+                "user_id": int(row['user_id']),
+                "username": row['username'],
+                "email": row['email'],
+                "book_id": int(row['book_id']),
+                "book_title": row['book_title'],
+                "chapter_title": row['chapter_title'],
+                "chapter_content": row['chapter_content'],
+                "order_number": int(row['order_number']),
+                "status": row['status'],
+                "admin_note": row['admin_note'] if pd.notna(row['admin_note']) else None,
+                "created_at": row['created_at'].isoformat() if pd.notna(row['created_at']) else None
+            })
+        
+        return submissions
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        conn.close()
+
+@app.put("/api/v1/admin/submissions/chapters/{submission_id}/decision")
+async def moderate_chapter_submission(
+    submission_id: int,
+    decision: dict,
+    user_id: int = Depends(get_current_user_id)
+):
+    """Админ одобряет/отклоняет заявку на главу (создание или редактирование)"""
+    if not is_admin(user_id):
+        raise HTTPException(status_code=403, detail="Доступ запрещен")
+    
+    try:
+        from .database import get_db_connection
+        conn = get_db_connection()
+        
+        check_query = text("SELECT * FROM user_chapter_submissions WHERE submission_id = :id")
+        check = conn.execute(check_query, {"id": submission_id}).fetchone()
+        if not check:
+            raise HTTPException(status_code=404, detail="Заявка не найдена")
+        
+        new_status = decision.get("status")
+        admin_note = decision.get("admin_note")
+        
+        if new_status == "approved":
+            if check.chapter_id:  # Это РЕДАКТИРОВАНИЕ
+                update_query = text("""
+                    UPDATE chapters 
+                    SET title = :title, content_html = :content, order_number = :order_number
+                    WHERE chapter_id = :chapter_id
+                """)
+                
+                conn.execute(update_query, {
+                    "chapter_id": check.chapter_id,
+                    "title": check.chapter_title,
+                    "content": check.chapter_content,
+                    "order_number": check.order_number
+                })
+                conn.commit()
+            else:  # Это СОЗДАНИЕ
+                chapter_query = text("""
+                    INSERT INTO chapters (book_id, title, content_html, order_number)
+                    VALUES (:book_id, :title, :content, :order_number)
+                """)
+                
+                conn.execute(chapter_query, {
+                    "book_id": check.book_id,
+                    "title": check.chapter_title,
+                    "content": check.chapter_content,
+                    "order_number": check.order_number
+                })
+                conn.commit()
+        
+        # Обновляем статус
+        update_query = text("""
+            UPDATE user_chapter_submissions
+            SET status = :status, admin_note = :admin_note
+            WHERE submission_id = :submission_id
+        """)
+        
+        conn.execute(update_query, {
+            "submission_id": submission_id,
+            "status": new_status,
+            "admin_note": admin_note
+        })
+        conn.commit()
+        
+        return {
+            "message": f"Заявка на главу {new_status}",
+            "submission_id": submission_id
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        conn.close()
+
+@app.get("/api/v1/my-books", response_model=List[dict])
+async def get_my_books(
+    user_id: int = Depends(get_current_user_id)
+):
+    """Получить книги, созданные текущим пользователем"""
+    try:
+        from .database import get_db_connection
+        conn = get_db_connection()
+        
+        query = text("""
+            SELECT b.book_id, b.title, b.author, b.description, 
+                   b.year_publication, b.publisher, b.image_url,
+                   COUNT(DISTINCT c.chapter_id) as chapters_count
+            FROM books b
+            LEFT JOIN chapters c ON b.book_id = c.book_id
+            WHERE b.created_by = :user_id
+            GROUP BY b.book_id, b.title, b.author, b.description, 
+                     b.year_publication, b.publisher, b.image_url
+            ORDER BY b.created_at DESC
+        """)
+        
+        df = pd.read_sql_query(query, conn, params={"user_id": user_id})
+        
+        if df.empty:
+            return []
+        
+        books = []
+        for _, row in df.iterrows():
+            books.append({
+                "book_id": int(row['book_id']),
+                "title": row['title'],
+                "author": row['author'],
+                "description": row['description'],
+                "year_publication": int(row['year_publication']) if pd.notna(row['year_publication']) else None,
+                "publisher": row['publisher'],
+                "image_url": row['image_url'],
+                "chapters_count": int(row['chapters_count'])
+            })
+        
+        return books
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        conn.close()

@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Книжный Советник - Подать заявку</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #f8f9fa; }
+        .submit-card {
+            background: white;
+            border-radius: 10px;
+            padding: 30px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+        }
+    </style>
+</head>
+<body>
+
+    <nav class="navbar navbar-dark bg-dark mb-4">
+        <div class="container">
+            <a class="navbar-brand" href="index.html">📚 Книжный Советник</a>
+            <div class="d-flex">
+                <a href="catalog.html" class="btn btn-outline-light me-2">📖 Каталог</a>
+                <a href="dashboard.html" class="btn btn-outline-light me-2">📚 Моя библиотека</a>
+                <button class="btn btn-outline-danger" id="logout-btn">Выйти</button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <ul class="nav nav-tabs mb-4" id="submitTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="book-tab" data-bs-toggle="tab" data-bs-target="#book-pane" type="button">📕 Новая книга</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="chapter-tab" data-bs-toggle="tab" data-bs-target="#chapter-pane" type="button">📄 Добавить главу</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="my-submissions-tab" data-bs-toggle="tab" data-bs-target="#my-submissions-pane" type="button">📋 Мои заявки</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="edit-chapter-tab" data-bs-toggle="tab" data-bs-target="#edit-chapter-pane" type="button">✏️ Редактировать главу</button>
+            </li>
+        </ul>
+
+        <div class="tab-content" id="submitTabsContent">
+            
+            <!-- 1. Новая книга -->
+            <div class="tab-pane fade show active" id="book-pane">
+                <div class="submit-card">
+                    <h4 class="mb-4">📕 Подать заявку на создание книги</h4>
+                    <form id="bookSubmissionForm">
+                        <div class="mb-3">
+                            <label for="bookTitle" class="form-label">Название книги *</label>
+                            <input type="text" class="form-control" id="bookTitle" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="bookAuthor" class="form-label">Автор *</label>
+                            <input type="text" class="form-control" id="bookAuthor" required>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="bookYear" class="form-label">Год издания</label>
+                                <input type="number" class="form-control" id="bookYear">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="bookPublisher" class="form-label">Издательство</label>
+                                <input type="text" class="form-control" id="bookPublisher">
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="bookImageUrl" class="form-label">URL обложки</label>
+                            <input type="url" class="form-control" id="bookImageUrl">
+                        </div>
+                        <div class="mb-3">
+                            <label for="bookDescription" class="form-label">Описание</label>
+                            <textarea class="form-control" id="bookDescription" rows="4"></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Жанры</label>
+                            <div id="bookGenresContainer" class="row g-2">
+                                <div class="col-12 text-center">
+                                    <div class="spinner-border spinner-border-sm text-primary"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-primary btn-lg">📤 Отправить заявку</button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- 2. Добавить главу -->
+            <div class="tab-pane fade" id="chapter-pane">
+                <div class="submit-card">
+                    <h4 class="mb-4">📄 Подать заявку на добавление главы</h4>
+                    <form id="chapterSubmissionForm">
+                        <div class="mb-3">
+                            <label for="selectBook" class="form-label">Выберите книгу *</label>
+                            <select class="form-select" id="selectBook" required>
+                                <option value="">Загрузка...</option>
+                            </select>
+                        </div>
+                        <div class="mb-3" id="existingChaptersBlock" style="display: none;">
+                            <label class="form-label">📋 Существующие главы в книге:</label>
+                            <div class="border rounded p-3 bg-light" id="existingChaptersList">
+                                <!-- Сюда JavaScript вставит список глав -->
+                            </div>
+                            <div class="form-text">Это поможет правильно выбрать номер для новой главы</div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="chapterTitle" class="form-label">Название главы *</label>
+                            <input type="text" class="form-control" id="chapterTitle" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="chapterOrder" class="form-label">Номер главы *</label>
+                            <input type="number" class="form-control" id="chapterOrder" value="0" min="0" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="chapterContent" class="form-label">Содержание (HTML) *</label>
+                            <textarea class="form-control" id="chapterContent" rows="10" required></textarea>
+                            <div class="form-text">Используйте HTML-теги: &lt;p&gt;, &lt;h1&gt;, &lt;b&gt; и т.д.</div>
+                        </div>
+                        <button type="submit" class="btn btn-success btn-lg">📤 Отправить заявку</button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- 3. Мои заявки -->
+            <div class="tab-pane fade" id="my-submissions-pane">
+                <div class="submit-card">
+                    <h4 class="mb-4">📋 Мои заявки</h4>
+                    <ul class="nav nav-pills mb-3" id="mySubmissionsTabs">
+                        <li class="nav-item">
+                            <button class="nav-link active" data-tab="books">Книги</button>
+                        </li>
+                        <li class="nav-item">
+                            <button class="nav-link" data-tab="chapters">Главы</button>
+                        </li>
+                    </ul>
+                    <div id="mySubmissionsContent">
+                        <div class="text-center py-5">
+                            <div class="spinner-border text-primary"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="tab-pane fade" id="edit-chapter-pane">
+                <div class="submit-card">
+                    <h4 class="mb-4">✏️ Подать заявку на редактирование главы</h4>
+                    <form id="editChapterSubmissionForm">
+                        <div class="mb-3">
+                            <label for="editSelectBook" class="form-label">Выберите книгу *</label>
+                            <select class="form-select" id="editSelectBook" required>
+                                <option value="">Загрузка...</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="editSelectChapter" class="form-label">Выберите главу *</label>
+                            <select class="form-select" id="editSelectChapter" required>
+                                <option value="">Сначала выберите книгу</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="editChapterTitle" class="form-label">Новое название главы *</label>
+                            <input type="text" class="form-control" id="editChapterTitle" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="editChapterOrder" class="form-label">Номер главы *</label>
+                            <input type="number" step="0.1" class="form-control" id="chapterOrder" value="0" min="0" required>
+                            <div class="form-text">Можно использовать дробные числа: 1, 1.5, 2 и т.д.</div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="editChapterContent" class="form-label">Новое содержание (HTML) *</label>
+                            <textarea class="form-control" id="editChapterContent" rows="10" required></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-warning btn-lg">📤 Отправить заявку на редактирование</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/toast.js"></script>
+    <script src="js/submit_content.js"></script>
+
+</body>
+</html>

@@ -133,3 +133,7 @@ const ratingsAPI = {
 const statsAPI = {
     getReadingStats: () => apiRequest('/stats/reading')
 };
+
+const userAPI = {
+    getMe: () => apiRequest('/auth/me')
+};

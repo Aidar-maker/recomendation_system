@@ -35,27 +35,18 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Загрузка книги и главы
     async function loadChapter() {
         try {
-            // Сначала загружаем информацию о книге
             currentBook = await apiRequest(`/books/${bookId}`);
             bookTitleEl.textContent = currentBook.title;
 
-            // Загружаем список глав для навигации
-            chaptersList = currentBook.chapters || [];
-
-            // Загружаем контент текущей главы
             currentChapter = await apiRequest(`/books/${bookId}/chapters/${chapterId}`);
             
-            // Отображаем
             chapterTitleEl.textContent = currentChapter.title;
             chapterContentEl.innerHTML = currentChapter.content_html;
 
-            // Настраиваем кнопки навигации
-            updateNavButtons();
+            // Обновляем кнопки навигации с учётом всех глав
+            updateNavButtons(currentChapter.all_chapters || []);
 
-            // Загружаем сохранённый прогресс
             await loadProgress();
-
-            // Начинаем отслеживать скролл для прогресса
             setupScrollTracking();
 
             console.log(`✅ Глава загружена: ${currentChapter.title}`);
@@ -72,26 +63,73 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     // Обновление кнопок навигации
-    function updateNavButtons() {
-        const currentIndex = chaptersList.findIndex(c => c.chapter_id === chapterId);
+    function updateNavButtons(allChapters) {
+        const currentIndex = allChapters.findIndex(c => c.chapter_id === chapterId);
         
         // Кнопка "Назад"
         if (currentIndex > 0) {
-            const prevChapter = chaptersList[currentIndex - 1];
+            const prevChapter = allChapters[currentIndex - 1];
             prevBtn.disabled = false;
+            prevBtn.textContent = `← ${prevChapter.display_name}`;
             prevBtn.onclick = () => navigateToChapter(prevChapter.chapter_id);
         } else {
             prevBtn.disabled = true;
+            prevBtn.textContent = '← Начало';
         }
 
         // Кнопка "Вперёд"
-        if (currentIndex < chaptersList.length - 1) {
-            const nextChapter = chaptersList[currentIndex + 1];
+        if (currentIndex < allChapters.length - 1) {
+            const nextChapter = allChapters[currentIndex + 1];
             nextBtn.disabled = false;
+            nextBtn.textContent = `${nextChapter.display_name} →`;
             nextBtn.onclick = () => navigateToChapter(nextChapter.chapter_id);
         } else {
             nextBtn.disabled = true;
+            nextBtn.textContent = 'Конец';
         }
+
+        // Добавляем выпадающий список глав
+        renderChapterSelector(allChapters, currentIndex);
+    }
+
+    function renderChapterSelector(allChapters, currentIndex) {
+        // Ищем или создаём контейнер для селектора
+        let selectorContainer = document.querySelector('.chapter-selector');
+        if (!selectorContainer) {
+            selectorContainer = document.createElement('div');
+            selectorContainer.className = 'chapter-selector';
+            selectorContainer.style.cssText = `
+                position: fixed;
+                top: 70px;
+                right: 20px;
+                z-index: 100;
+                background: white;
+                border-radius: 8px;
+                box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+                padding: 10px;
+                max-width: 300px;
+            `;
+            
+            // Вставляем после header
+            const header = document.querySelector('.reader-header');
+            if (header) {
+                header.parentNode.insertBefore(selectorContainer, header.nextSibling);
+            }
+        }
+
+        const options = allChapters.map((chapter, index) => {
+            const isSelected = index === currentIndex;
+            return `<option value="${chapter.chapter_id}" ${isSelected ? 'selected' : ''}>
+                ${chapter.display_name}: ${chapter.title}
+            </option>`;
+        }).join('');
+
+        selectorContainer.innerHTML = `
+            <label class="form-label mb-1"><b>Выбрать главу:</b></label>
+            <select class="form-select form-select-sm" onchange="navigateToChapter(parseInt(this.value))">
+                ${options}
+            </select>
+        `;
     }
 
     // Переход к другой главе

@@ -48,6 +48,14 @@ document.addEventListener('DOMContentLoaded', async () => {
             bookPublisher.textContent = currentBook.publisher || '—';
             bookDescription.textContent = currentBook.description || 'Описание отсутствует';
             
+            // Отображаем жанры (если есть)
+            const genresContainer = document.getElementById('bookGenres');
+            if (genresContainer && currentBook.genres && currentBook.genres.length > 0) {
+                genresContainer.innerHTML = currentBook.genres.map(g => 
+                    `<span class="badge bg-secondary me-1">${escapeHtml(g.genre_name)}</span>`
+                ).join('');
+            }
+
             // Обложка - проверяем на валидность
             const defaultCover = 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
                 <svg xmlns="http://www.w3.org/2000/svg" width="300" height="400" viewBox="0 0 300 400">

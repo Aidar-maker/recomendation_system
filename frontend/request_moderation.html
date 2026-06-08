@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Книжный Советник - Запрос на модерацию</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #f8f9fa; }
+        .request-card {
+            background: white;
+            border-radius: 10px;
+            padding: 30px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+    </style>
+</head>
+<body>
+
+    <nav class="navbar navbar-dark bg-dark mb-4">
+        <div class="container">
+            <a class="navbar-brand" href="index.html">📚 Книжный Советник</a>
+            <div class="d-flex">
+                <a href="catalog.html" class="btn btn-outline-light me-2">📖 Каталог</a>
+                <a href="dashboard.html" class="btn btn-outline-light me-2">📚 Моя библиотека</a>
+                <button class="btn btn-outline-danger" id="logout-btn">Выйти</button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="row">
+            <div class="col-md-8">
+                <div class="request-card mb-4">
+                    <h4 class="mb-4">📝 Подать запрос на модерацию</h4>
+                    <form id="requestForm">
+                        <div class="mb-3">
+                            <label for="requestTitle" class="form-label">Название читалки *</label>
+                            <input type="text" class="form-control" id="requestTitle" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="requestDescription" class="form-label">Описание *</label>
+                            <textarea class="form-control" id="requestDescription" rows="6" required></textarea>
+                            <div class="form-text">Опишите вашу читалку: жанры, особенности, целевая аудитория</div>
+                        </div>
+                        <button type="submit" class="btn btn-primary btn-lg">📤 Отправить запрос</button>
+                    </form>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="request-card">
+                    <h5 class="mb-3">📋 Мои запросы</h5>
+                    <div id="myRequestsContainer">
+                        <div class="text-center">
+                            <div class="spinner-border spinner-border-sm text-primary"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/toast.js"></script>
+    <script src="js/request_moderation.js"></script>
+
+</body>
+</html>

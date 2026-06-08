@@ -42,6 +42,12 @@
             <li class="nav-item" role="presentation">
                 <button class="nav-link" id="books-list-tab" data-bs-toggle="tab" data-bs-target="#books-list-pane" type="button" role="tab">📚 Список книг</button>
             </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="moderation-tab" data-bs-toggle="tab" data-bs-target="#moderation-pane" type="button" role="tab">📋 Модерация</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="user-submissions-tab" data-bs-toggle="tab" data-bs-target="#user-submissions-pane" type="button" role="tab">📥 Заявки пользователей</button>
+            </li>
         </ul>
 
         <!-- Содержимое вкладок -->
@@ -111,6 +117,17 @@
                             <textarea class="form-control" id="bookDescription" rows="4"></textarea>
                         </div>
 
+                        <div class="mb-3">
+                            <label class="form-label">Жанры</label>
+                            <div id="genresContainer" class="row g-2">
+                                <!-- Сюда JavaScript вставит чекбоксы жанров -->
+                                <div class="col-12 text-center">
+                                    <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
+                                </div>
+                            </div>
+                            <div class="form-text">Можно выбрать несколько жанров</div>
+                        </div>
+
                         <button type="submit" class="btn btn-primary btn-lg">✨ Создать книгу</button>
                     </form>
                 </div>
@@ -161,6 +178,43 @@
                                 <span class="visually-hidden">Загрузка...</span>
                             </div>
                         </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 4. Модерация -->
+            <div class="tab-pane fade" id="moderation-pane" role="tabpanel">
+                <div class="admin-card">
+                    <h4 class="mb-4">📋 Запросы на модерацию</h4>
+                    <div class="mb-3">
+                        <select id="moderationFilter" class="form-select">
+                            <option value="">Все запросы</option>
+                            <option value="pending">⏳ На рассмотрении</option>
+                            <option value="approved">✅ Одобрено</option>
+                            <option value="rejected">❌ Отклонено</option>
+                        </select>
+                    </div>
+                    <div id="moderationContainer">
+                        <div class="text-center py-5">
+                            <div class="spinner-border text-primary"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 5. Заявки пользователей -->
+            <div class="tab-pane fade" id="user-submissions-pane" role="tabpanel">
+                <ul class="nav nav-pills mb-3">
+                    <li class="nav-item">
+                        <button class="nav-link active" data-submission-type="books">Книги</button>
+                    </li>
+                    <li class="nav-item">
+                        <button class="nav-link" data-submission-type="chapters">Главы</button>
+                    </li>
+                </ul>
+                <div id="userSubmissionsContainer">
+                    <div class="text-center py-5">
+                        <div class="spinner-border text-primary"></div>
                     </div>
                 </div>
             </div>
