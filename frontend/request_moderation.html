@@ -3,67 +3,376 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Книжный Советник - Запрос на модерацию</title>
+    <title>Book Mania - Запрос на модерацию</title>
+    <script>
+        (function() {
+            const saved = localStorage.getItem('siteTheme') || 'dark';
+            document.documentElement.setAttribute('data-theme', saved);
+        })();
+    </script>
+    
+    <link rel="stylesheet" href="styles/variables.css">
+    <link rel="stylesheet" href="styles/global.css">
+    <link rel="stylesheet" href="styles/components.css">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    
     <style>
-        body { background-color: #f8f9fa; }
-        .request-card {
-            background: white;
-            border-radius: 10px;
-            padding: 30px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        body {
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+        }
+
+        /* ===== NAVBAR ===== */
+        .navbar {
+            background-color: var(--bg-secondary);
+            border-bottom: 1px solid var(--border-color);
+            padding: 1rem 0;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .navbar-container {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 2rem;
+        }
+
+        .navbar-brand {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            text-decoration: none;
+        }
+
+        .navbar-brand .accent {
+            color: var(--accent-primary);
+        }
+
+        .navbar-nav {
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            gap: 0.5rem;
+            list-style: none;
+            margin: 0;
+            padding: 0;
+        }
+
+        .navbar-nav li {
+            display: inline-block;
+        }
+
+        .nav-link {
+            color: var(--text-secondary);
+            font-weight: 500;
+            padding: 0.5rem 1rem;
+            border-radius: var(--radius-md);
+            transition: all 0.2s;
+            text-decoration: none;
+            font-size: 0.9rem;
+            display: inline-block;
+        }
+
+        .nav-link:hover,
+        .nav-link.active {
+            color: var(--text-primary);
+            background-color: var(--bg-hover);
+        }
+
+        .nav-link.admin-only {
+            color: var(--accent-primary);
+        }
+
+        .navbar-actions {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .user-email {
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+        }
+
+        .btn-logout {
+            background: transparent;
+            border: 1px solid var(--border-color);
+            color: var(--text-secondary);
+            padding: 0.4rem 1rem;
+            border-radius: var(--radius-md);
+            cursor: pointer;
+            font-size: 0.875rem;
+            transition: all 0.2s;
+        }
+
+        .btn-logout:hover {
+            background: var(--bg-hover);
+            color: var(--danger);
+            border-color: var(--danger);
+        }
+
+        /* ===== LAYOUT ===== */
+        .page-layout {
+            display: grid;
+            grid-template-columns: 1fr 380px;
+            gap: 2rem;
+            margin-top: 2rem;
+        }
+
+        /* ===== CARD ===== */
+        .card-custom {
+            background-color: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            padding: 2rem;
+        }
+
+        .card-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin: 0 0 1.5rem 0;
+        }
+
+        /* ===== FORM ===== */
+        .form-label {
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+            display: block;
+        }
+
+        .form-control {
+            background-color: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            padding: 0.75rem 1rem;
+            border-radius: var(--radius-md);
+            font-size: 0.95rem;
+            transition: all 0.2s;
+            width: 100%;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: var(--accent-primary);
+            background-color: var(--bg-secondary);
+            box-shadow: 0 0 0 3px rgba(255, 107, 53, 0.1);
+        }
+
+        .form-control::placeholder {
+            color: var(--text-muted);
+        }
+
+        .form-text {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-top: 0.25rem;
+        }
+
+        textarea.form-control {
+            resize: vertical;
+            min-height: 150px;
+            font-family: inherit;
+        }
+
+        .btn-submit {
+            background-color: var(--accent-primary);
+            color: white;
+            border: none;
+            padding: 0.875rem 2rem;
+            border-radius: var(--radius-md);
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-top: 1rem;
+        }
+
+        .btn-submit:hover:not(:disabled) {
+            background-color: var(--accent-hover);
+            transform: translateY(-1px);
+        }
+
+        .btn-submit:disabled {
+            background-color: var(--bg-hover);
+            color: var(--text-muted);
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* ===== REQUESTS LIST ===== */
+        .requests-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .request-item {
+            background-color: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            padding: 1rem 1.25rem;
+            transition: all 0.2s;
+        }
+
+        .request-item:hover {
+            border-color: var(--border-light);
+        }
+
+        .request-item-title {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin: 0 0 0.5rem 0;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: var(--radius-sm);
+            font-size: 0.75rem;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        .status-pending {
+            background-color: var(--warning);
+            color: var(--bg-primary);
+        }
+
+        .status-approved {
+            background-color: var(--success);
+            color: white;
+        }
+
+        .status-rejected {
+            background-color: var(--danger);
+            color: white;
+        }
+
+        .request-note {
+            margin-top: 0.5rem;
+            padding: 0.5rem 0.75rem;
+            background-color: var(--bg-primary);
+            border-left: 3px solid var(--accent-primary);
+            border-radius: var(--radius-sm);
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        .request-date {
+            display: block;
+            margin-top: 0.5rem;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        /* ===== EMPTY STATE ===== */
+        .empty-state {
+            text-align: center;
+            padding: 2rem 1rem;
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+
+        /* ===== RESPONSIVE ===== */
+        @media (max-width: 992px) {
+            .page-layout {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .navbar-container {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .navbar-nav {
+                flex-wrap: wrap;
+                margin-top: 1rem;
+                padding-top: 1rem;
+                border-top: 1px solid var(--border-color);
+            }
         }
     </style>
 </head>
 <body>
 
-    <nav class="navbar navbar-dark bg-dark mb-4">
+    <!-- Навигация -->
+    <nav class="navbar">
         <div class="container">
-            <a class="navbar-brand" href="index.html">📚 Книжный Советник</a>
-            <div class="d-flex">
-                <a href="catalog.html" class="btn btn-outline-light me-2">📖 Каталог</a>
-                <a href="dashboard.html" class="btn btn-outline-light me-2">📚 Моя библиотека</a>
-                <button class="btn btn-outline-danger" id="logout-btn">Выйти</button>
+            <div class="navbar-container">
+                <a class="navbar-brand" href="dashboard.html">
+                    Book<span class="accent">Mania</span>
+                </a>
+                
+                <ul class="navbar-nav">
+                    <li><a href="dashboard.html" class="nav-link">Главная</a></li>
+                    <li><a href="catalog.html" class="nav-link">Каталог</a></li>
+                    <li><a href="submit_content.html" class="nav-link">Подать заявку</a></li>
+                    <li><a href="request_moderation.html" class="nav-link active">Запросы</a></li>
+                    <li><a href="admin.html" class="nav-link admin-only">Админка</a></li>
+                </ul>
+                
+                <div class="navbar-actions">
+                    <span class="user-email" id="user-email">Загрузка...</span>
+                    <button class="btn-logout" id="logout-btn">Выйти</button>
+                </div>
             </div>
         </div>
     </nav>
 
+    <!-- Основной контент -->
     <div class="container">
-        <div class="row">
-            <div class="col-md-8">
-                <div class="request-card mb-4">
-                    <h4 class="mb-4">📝 Подать запрос на модерацию</h4>
+        <div class="page-layout">
+            
+            <!-- Левая часть: форма -->
+            <div>
+                <div class="card-custom">
+                    <h2 class="card-title">Подать запрос на модерацию</h2>
                     <form id="requestForm">
-                        <div class="mb-3">
+                        <div style="margin-bottom: 1.25rem;">
                             <label for="requestTitle" class="form-label">Название читалки *</label>
-                            <input type="text" class="form-control" id="requestTitle" required>
+                            <input type="text" class="form-control" id="requestTitle" placeholder="Введите название" required>
                         </div>
-                        <div class="mb-3">
+                        <div style="margin-bottom: 1.25rem;">
                             <label for="requestDescription" class="form-label">Описание *</label>
-                            <textarea class="form-control" id="requestDescription" rows="6" required></textarea>
+                            <textarea class="form-control" id="requestDescription" rows="6" placeholder="Опишите вашу читалку: жанры, особенности, целевая аудитория" required></textarea>
                             <div class="form-text">Опишите вашу читалку: жанры, особенности, целевая аудитория</div>
                         </div>
-                        <button type="submit" class="btn btn-primary btn-lg">📤 Отправить запрос</button>
+                        <button type="submit" class="btn-submit">Отправить запрос</button>
                     </form>
                 </div>
             </div>
 
-            <div class="col-md-4">
-                <div class="request-card">
-                    <h5 class="mb-3">📋 Мои запросы</h5>
+            <!-- Правая часть: мои запросы -->
+            <div>
+                <div class="card-custom">
+                    <h3 class="card-title" style="font-size: 1.25rem;">Мои запросы</h3>
                     <div id="myRequestsContainer">
-                        <div class="text-center">
+                        <div style="text-align: center; padding: 2rem;">
                             <div class="spinner-border spinner-border-sm text-primary"></div>
                         </div>
                     </div>
                 </div>
             </div>
+
         </div>
     </div>
 
+    <!-- Скрипты -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="js/api.js"></script>
+    <script src="js/theme.js"></script>
     <script src="js/toast.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/auth-check.js"></script>
+    <script src="js/user.js"></script>
     <script src="js/request_moderation.js"></script>
 
 </body>

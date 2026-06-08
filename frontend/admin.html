@@ -3,52 +3,673 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Книжный Советник - Админка</title>
+    <title>Book Mania - Админка</title>
     <script>
         (function() {
-            const saved = localStorage.getItem('siteTheme') || 'light';
+            const saved = localStorage.getItem('siteTheme') || 'dark';
             document.documentElement.setAttribute('data-theme', saved);
         })();
     </script>
+    
+    <link rel="stylesheet" href="styles/variables.css">
+    <link rel="stylesheet" href="styles/global.css">
+    <link rel="stylesheet" href="styles/components.css">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="css/themes.css">
+    
+    <style>
+        body {
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+        }
+
+        /* ===== NAVBAR ===== */
+        .navbar {
+            background-color: var(--bg-secondary);
+            border-bottom: 1px solid var(--border-color);
+            padding: 1rem 0;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .navbar-container {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 2rem;
+        }
+
+        .navbar-brand {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            text-decoration: none;
+        }
+
+        .navbar-brand .accent {
+            color: var(--accent-primary);
+        }
+
+        .navbar-brand .badge-admin {
+            font-size: 0.7rem;
+            background-color: var(--accent-primary);
+            color: white;
+            padding: 0.25rem 0.5rem;
+            border-radius: var(--radius-sm);
+            margin-left: 0.5rem;
+            vertical-align: middle;
+            font-weight: 600;
+        }
+
+        .navbar-nav {
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            gap: 0.5rem;
+            list-style: none;
+            margin: 0;
+            padding: 0;
+        }
+
+        .navbar-nav li {
+            display: inline-block;
+        }
+
+        .nav-link {
+            color: var(--text-secondary);
+            font-weight: 500;
+            padding: 0.5rem 1rem;
+            border-radius: var(--radius-md);
+            transition: all 0.2s;
+            text-decoration: none;
+            font-size: 0.9rem;
+            display: inline-block;
+        }
+
+        .nav-link:hover {
+            color: var(--text-primary);
+            background-color: var(--bg-hover);
+        }
+
+        .navbar-actions {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .user-email {
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+        }
+
+        .btn-action {
+            background: transparent;
+            border: 1px solid var(--border-color);
+            color: var(--text-secondary);
+            padding: 0.4rem 1rem;
+            border-radius: var(--radius-md);
+            cursor: pointer;
+            font-size: 0.875rem;
+            transition: all 0.2s;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .btn-action:hover {
+            background: var(--bg-hover);
+            color: var(--text-primary);
+            border-color: var(--border-light);
+        }
+
+        .btn-action-success {
+            border-color: var(--success);
+            color: var(--success);
+        }
+
+        .btn-action-success:hover {
+            background: var(--success);
+            color: white;
+        }
+
+        .btn-action-danger {
+            border-color: var(--danger);
+            color: var(--danger);
+        }
+
+        .btn-action-danger:hover {
+            background: var(--danger);
+            color: white;
+        }
+
+        /* ===== ADMIN TABS ===== */
+        .admin-tabs {
+            display: flex;
+            gap: 0.5rem;
+            border-bottom: 1px solid var(--border-color);
+            margin-bottom: 2rem;
+            overflow-x: auto;
+            flex-wrap: wrap;
+        }
+
+        .admin-tab {
+            padding: 0.875rem 1.5rem;
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            font-weight: 500;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s;
+            white-space: nowrap;
+            font-size: 0.95rem;
+        }
+
+        .admin-tab:hover {
+            color: var(--text-primary);
+        }
+
+        .admin-tab.active {
+            color: var(--accent-primary);
+            border-bottom-color: var(--accent-primary);
+        }
+
+        /* ===== ADMIN CARDS ===== */
+        .admin-card {
+            background-color: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .admin-card-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin: 0 0 1.5rem 0;
+        }
+
+        /* ===== FORMS ===== */
+        .form-label {
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+            display: block;
+        }
+
+        .form-control,
+        .form-select {
+            background-color: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            padding: 0.75rem 1rem;
+            border-radius: var(--radius-md);
+            font-size: 0.95rem;
+            transition: all 0.2s;
+            width: 100%;
+        }
+
+        .form-control:focus,
+        .form-select:focus {
+            outline: none;
+            border-color: var(--accent-primary);
+            background-color: var(--bg-secondary);
+            box-shadow: 0 0 0 3px rgba(255, 107, 53, 0.1);
+        }
+
+        .form-control::placeholder {
+            color: var(--text-muted);
+        }
+
+        .form-text {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-top: 0.25rem;
+        }
+
+        textarea.form-control {
+            font-family: 'Courier New', monospace;
+            resize: vertical;
+        }
+
+        /* Cover type toggle */
+        .cover-type-group {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .cover-type-btn {
+            flex: 1;
+            padding: 0.625rem 1rem;
+            background: transparent;
+            border: 1px solid var(--border-color);
+            color: var(--text-secondary);
+            border-radius: var(--radius-md);
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+        .cover-type-btn:hover {
+            background: var(--bg-hover);
+            color: var(--text-primary);
+        }
+
+        .cover-type-btn.active {
+            background: var(--accent-primary);
+            color: white;
+            border-color: var(--accent-primary);
+        }
+
+        .cover-type-btn input[type="radio"] {
+            display: none;
+        }
+
+        /* Cover preview */
+        .cover-preview {
+            margin-top: 1rem;
+            text-align: center;
+        }
+
+        .cover-preview img {
+            max-height: 300px;
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border-color);
+        }
+
+        /* Genres checkboxes */
+        .genres-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 0.5rem;
+            margin-top: 0.5rem;
+        }
+
+        .genre-checkbox {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 0.75rem;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+        }
+
+        .genre-checkbox:hover {
+            background: var(--bg-hover);
+            color: var(--text-primary);
+        }
+
+        .genre-checkbox input[type="checkbox"] {
+            accent-color: var(--accent-primary);
+        }
+
+        .genre-checkbox input[type="checkbox"]:checked ~ span {
+            color: var(--text-primary);
+            font-weight: 500;
+        }
+
+        /* Buttons */
+        .btn-submit {
+            background-color: var(--accent-primary);
+            color: white;
+            border: none;
+            padding: 0.875rem 2rem;
+            border-radius: var(--radius-md);
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-submit:hover {
+            background-color: var(--accent-hover);
+            transform: translateY(-1px);
+        }
+
+        .btn-submit:disabled {
+            background-color: var(--bg-hover);
+            color: var(--text-muted);
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-submit-secondary {
+            background-color: var(--info);
+            color: white;
+        }
+
+        .btn-submit-secondary:hover {
+            background-color: #2196f3;
+        }
+
+        /* ===== BOOK LIST ===== */
+        .book-list-item {
+            background-color: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            padding: 1.25rem 1.5rem;
+            margin-bottom: 0.75rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.2s;
+        }
+
+        .book-list-item:hover {
+            border-color: var(--border-light);
+            background-color: var(--bg-hover);
+        }
+
+        .book-list-info h5 {
+            color: var(--text-primary);
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin: 0 0 0.25rem 0;
+        }
+
+        .book-list-info p {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            margin: 0 0 0.25rem 0;
+        }
+
+        .book-list-info small {
+            color: var(--text-muted);
+            font-size: 0.8rem;
+        }
+
+        .book-list-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .btn-small {
+            padding: 0.4rem 0.9rem;
+            border: 1px solid var(--border-color);
+            background: transparent;
+            color: var(--text-secondary);
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            font-size: 0.8rem;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+        .btn-small:hover {
+            background: var(--bg-hover);
+            color: var(--text-primary);
+            border-color: var(--border-light);
+        }
+
+        .btn-small-primary {
+            border-color: var(--accent-secondary);
+            color: var(--accent-secondary);
+        }
+
+        .btn-small-primary:hover {
+            background: var(--accent-secondary);
+            color: white;
+        }
+
+        .btn-small-danger {
+            border-color: var(--danger);
+            color: var(--danger);
+        }
+
+        .btn-small-danger:hover {
+            background: var(--danger);
+            color: white;
+        }
+
+        .btn-small-success {
+            border-color: var(--success);
+            color: var(--success);
+        }
+
+        .btn-small-success:hover {
+            background: var(--success);
+            color: white;
+        }
+
+        /* ===== MODERATION / SUBMISSIONS ===== */
+        .submission-card {
+            background-color: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .submission-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 0.75rem;
+            gap: 1rem;
+        }
+
+        .submission-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin: 0;
+        }
+
+        .submission-title small {
+            color: var(--text-muted);
+            font-weight: 400;
+            font-size: 0.85rem;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: var(--radius-sm);
+            font-size: 0.75rem;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        .status-pending {
+            background-color: var(--warning);
+            color: var(--bg-primary);
+        }
+
+        .status-approved {
+            background-color: var(--success);
+            color: white;
+        }
+
+        .status-rejected {
+            background-color: var(--danger);
+            color: white;
+        }
+
+        .submission-meta {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin-bottom: 0.5rem;
+        }
+
+        .submission-description {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            line-height: 1.5;
+            margin: 0.5rem 0;
+        }
+
+        .submission-content-preview {
+            background-color: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            padding: 1rem;
+            max-height: 150px;
+            overflow-y: auto;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            margin: 0.75rem 0;
+        }
+
+        .admin-note {
+            background-color: var(--bg-primary);
+            border-left: 3px solid var(--accent-primary);
+            padding: 0.75rem 1rem;
+            margin: 0.75rem 0;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            border-radius: var(--radius-sm);
+        }
+
+        .submission-actions {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid var(--border-color);
+        }
+
+        /* Pills tabs */
+        .pills-group {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .pill-btn {
+            padding: 0.5rem 1.25rem;
+            background: transparent;
+            border: 1px solid var(--border-color);
+            color: var(--text-secondary);
+            border-radius: 50px;
+            cursor: pointer;
+            font-size: 0.875rem;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+        .pill-btn:hover {
+            background: var(--bg-hover);
+            color: var(--text-primary);
+        }
+
+        .pill-btn.active {
+            background: var(--accent-primary);
+            color: white;
+            border-color: var(--accent-primary);
+        }
+
+        /* Empty state */
+        .empty-state {
+            text-align: center;
+            padding: 3rem 2rem;
+            color: var(--text-muted);
+        }
+
+        /* Modal */
+        .modal-content {
+            background-color: var(--bg-card);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+        }
+
+        .modal-header {
+            border-bottom-color: var(--border-color);
+        }
+
+        .modal-footer {
+            border-top-color: var(--border-color);
+        }
+
+        .modal-title {
+            color: var(--text-primary);
+        }
+
+        .btn-close {
+            filter: invert(1);
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .navbar-container {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .navbar-nav {
+                flex-wrap: wrap;
+                margin-top: 1rem;
+                padding-top: 1rem;
+                border-top: 1px solid var(--border-color);
+            }
+
+            .book-list-item {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 1rem;
+            }
+
+            .submission-header {
+                flex-direction: column;
+            }
+        }
+    </style>
 </head>
 <body>
 
     <!-- Навигация -->
-    <nav class="navbar navbar-dark bg-dark mb-4">
+    <nav class="navbar">
         <div class="container">
-            <a class="navbar-brand" href="index.html">📚 Книжный Советник - Админка</a>
-            <div class="d-flex">
-                <a href="catalog.html" class="btn btn-outline-light me-2">📖 Каталог</a>
-                <a href="dashboard.html" class="btn btn-outline-light me-2"> Моя библиотека</a>         
-                <button class="btn btn-outline-success me-2" id="exportBtn">📥 Экспорт CSV</button>
-                <button class="btn btn-outline-danger" id="logout-btn">Выйти</button>
+            <div class="navbar-container">
+                <a class="navbar-brand" href="dashboard.html">
+                    Book<span class="accent">Mania</span>
+                    <span class="badge-admin">ADMIN</span>
+                </a>
+                
+                <ul class="navbar-nav">
+                    <li><a href="dashboard.html" class="nav-link">Главная</a></li>
+                    <li><a href="catalog.html" class="nav-link">Каталог</a></li>
+                    <li><a href="admin.html" class="nav-link" style="color: var(--accent-primary);">Админка</a></li>
+                </ul>
+                
+                <div class="navbar-actions">
+                    <button class="btn-action btn-action-success" id="exportBtn">Экспорт CSV</button>
+                    <span class="user-email" id="user-email">Загрузка...</span>
+                    <button class="btn-action btn-action-danger" id="logout-btn">Выйти</button>
+                </div>
             </div>
         </div>
     </nav>
 
     <!-- Основной контент -->
-    <div class="container">
+    <div class="container" style="padding: 2rem 1rem;">
         
         <!-- Вкладки -->
-        <ul class="nav nav-tabs mb-4" id="adminTabs" role="tablist">
-            <li class="nav-item" role="presentation">
-                <button class="nav-link active" id="create-book-tab" data-bs-toggle="tab" data-bs-target="#create-book-pane" type="button" role="tab">📕 Создать книгу</button>
-            </li>
-            <li class="nav-item" role="presentation">
-                <button class="nav-link" id="add-chapter-tab" data-bs-toggle="tab" data-bs-target="#add-chapter-pane" type="button" role="tab">📄 Добавить главу</button>
-            </li>
-            <li class="nav-item" role="presentation">
-                <button class="nav-link" id="books-list-tab" data-bs-toggle="tab" data-bs-target="#books-list-pane" type="button" role="tab">📚 Список книг</button>
-            </li>
-            <li class="nav-item" role="presentation">
-                <button class="nav-link" id="moderation-tab" data-bs-toggle="tab" data-bs-target="#moderation-pane" type="button" role="tab">📋 Модерация</button>
-            </li>
-            <li class="nav-item" role="presentation">
-                <button class="nav-link" id="user-submissions-tab" data-bs-toggle="tab" data-bs-target="#user-submissions-pane" type="button" role="tab">📥 Заявки пользователей</button>
-            </li>
-        </ul>
+        <div class="admin-tabs" id="adminTabs" role="tablist">
+            <button class="admin-tab active" id="create-book-tab" data-bs-toggle="tab" data-bs-target="#create-book-pane" type="button" role="tab">
+                Создать книгу
+            </button>
+            <button class="admin-tab" id="add-chapter-tab" data-bs-toggle="tab" data-bs-target="#add-chapter-pane" type="button" role="tab">
+                Добавить главу
+            </button>
+            <button class="admin-tab" id="books-list-tab" data-bs-toggle="tab" data-bs-target="#books-list-pane" type="button" role="tab">
+                Список книг
+            </button>
+            <button class="admin-tab" id="moderation-tab" data-bs-toggle="tab" data-bs-target="#moderation-pane" type="button" role="tab">
+                Модерация
+            </button>
+            <button class="admin-tab" id="user-submissions-tab" data-bs-toggle="tab" data-bs-target="#user-submissions-pane" type="button" role="tab">
+                Заявки пользователей
+            </button>
+        </div>
 
         <!-- Содержимое вкладок -->
         <div class="tab-content" id="adminTabsContent">
@@ -56,79 +677,77 @@
             <!-- 1. Создание книги -->
             <div class="tab-pane fade show active" id="create-book-pane" role="tabpanel">
                 <div class="admin-card">
-                    <h4 class="mb-4">📕 Создание новой книги</h4>
+                    <h2 class="admin-card-title">Создание новой книги</h2>
                     <form id="createBookForm">
-                        <div class="mb-3">
+                        <div style="margin-bottom: 1.25rem;">
                             <label for="bookTitle" class="form-label">Название книги *</label>
                             <input type="text" class="form-control" id="bookTitle" required>
                         </div>
                         
-                        <div class="mb-3">
+                        <div style="margin-bottom: 1.25rem;">
                             <label for="bookAuthor" class="form-label">Автор *</label>
                             <input type="text" class="form-control" id="bookAuthor" required>
                         </div>
 
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.25rem;">
+                            <div>
                                 <label for="bookYear" class="form-label">Год издания</label>
                                 <input type="number" class="form-control" id="bookYear">
                             </div>
-                            <div class="col-md-6 mb-3">
+                            <div>
                                 <label for="bookPublisher" class="form-label">Издательство</label>
                                 <input type="text" class="form-control" id="bookPublisher">
                             </div>
                         </div>
 
-                        <div class="mb-3">
+                        <div style="margin-bottom: 1.25rem;">
                             <label class="form-label">Обложка книги</label>
                             
-                            <!-- Переключатель способа загрузки -->
-                            <div class="btn-group w-100 mb-3" role="group">
-                                <input type="radio" class="btn-check" name="coverType" id="coverTypeUrl" value="url" checked>
-                                <label class="btn btn-outline-primary" for="coverTypeUrl"> По URL</label>
-                                
-                                <input type="radio" class="btn-check" name="coverType" id="coverTypeFile" value="file">
-                                <label class="btn btn-outline-primary" for="coverTypeFile">📁 Загрузить файл</label>
+                            <div class="cover-type-group">
+                                <label class="cover-type-btn active" id="coverTypeUrlLabel">
+                                    <input type="radio" name="coverType" id="coverTypeUrl" value="url" checked>
+                                    По URL
+                                </label>
+                                <label class="cover-type-btn" id="coverTypeFileLabel">
+                                    <input type="radio" name="coverType" id="coverTypeFile" value="file">
+                                    Загрузить файл
+                                </label>
                             </div>
                             
-                            <!-- Поле URL -->
                             <div id="coverUrlGroup">
                                 <input type="url" class="form-control" id="bookImageUrl" placeholder="https://example.com/cover.jpg">
                                 <div class="form-text">Вставьте прямую ссылку на изображение</div>
                             </div>
                             
-                            <!-- Поле загрузки файла -->
                             <div id="coverFileGroup" style="display: none;">
                                 <input type="file" class="form-control" id="bookImageFile" accept="image/jpeg,image/png,image/webp">
                                 <div class="form-text">Максимум 5 МБ. Форматы: JPEG, PNG, WebP</div>
                             </div>
                             
-                            <!-- Превью обложки -->
-                            <div class="mt-3 text-center" id="coverPreview" style="display: none;">
-                                <img id="coverPreviewImg" src="" alt="Превью обложки" class="img-fluid rounded" style="max-height: 300px;">
-                                <div class="mt-2">
-                                    <button type="button" class="btn btn-sm btn-outline-danger" id="clearCoverBtn">✕ Убрать обложку</button>
+                            <div class="cover-preview" id="coverPreview" style="display: none;">
+                                <img id="coverPreviewImg" src="" alt="Превью обложки">
+                                <div style="margin-top: 0.75rem;">
+                                    <button type="button" class="btn-small btn-small-danger" id="clearCoverBtn">Убрать обложку</button>
                                 </div>
                             </div>
                         </div>
 
-                        <div class="mb-3">
+                        <div style="margin-bottom: 1.25rem;">
                             <label for="bookDescription" class="form-label">Описание</label>
                             <textarea class="form-control" id="bookDescription" rows="4"></textarea>
                         </div>
 
-                        <div class="mb-3">
+                        <div style="margin-bottom: 1.5rem;">
                             <label class="form-label">Жанры</label>
-                            <div id="genresContainer" class="row g-2">
-                                <!-- Сюда JavaScript вставит чекбоксы жанров -->
-                                <div class="col-12 text-center">
-                                    <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
+                            <div id="genresContainer" class="genres-grid">
+                                <div style="grid-column: 1 / -1; text-align: center; color: var(--text-muted);">
+                                    Загрузка жанров...
                                 </div>
                             </div>
                             <div class="form-text">Можно выбрать несколько жанров</div>
                         </div>
 
-                        <button type="submit" class="btn btn-primary btn-lg">✨ Создать книгу</button>
+                        <button type="submit" class="btn-submit">Создать книгу</button>
                     </form>
                 </div>
             </div>
@@ -136,34 +755,36 @@
             <!-- 2. Добавление главы -->
             <div class="tab-pane fade" id="add-chapter-pane" role="tabpanel">
                 <div class="admin-card">
-                    <h4 class="mb-4">📄 Добавление главы</h4>
+                    <h2 class="admin-card-title">Добавление главы</h2>
                     <form id="addChapterForm">
-                        <div class="mb-3">
+                        <div style="margin-bottom: 1.25rem;">
                             <label for="selectBook" class="form-label">Выберите книгу *</label>
                             <select class="form-select" id="selectBook" required>
                                 <option value="">Загрузка списка книг...</option>
                             </select>
                         </div>
 
-                        <div class="mb-3">
+                        <div style="margin-bottom: 1.25rem;">
                             <label for="chapterTitle" class="form-label">Название главы *</label>
                             <input type="text" class="form-control" id="chapterTitle" placeholder="Например: Глава 1: Начало" required>
                         </div>
 
-                        <div class="mb-3">
+                        <div style="margin-bottom: 1.25rem;">
                             <label for="chapterOrder" class="form-label">Порядковый номер *</label>
-                            <input type="number" class="form-control" id="chapterOrder" value="0" min="0" required>
-                            <div class="form-text">Начинается с 0 (первая глава = 0)</div>
+                            <input type="number" class="form-control" id="chapterOrder" value="0" step="0.1" min="0" required>
+                            <div class="form-text">Можно использовать дробные числа: 0, 0.5, 1, 1.5 и т.д.</div>
                         </div>
 
-                        <div class="mb-3">
+                        <div style="margin-bottom: 1.5rem;">
                             <label for="chapterContent" class="form-label">Содержание главы (HTML) *</label>
                             <textarea class="form-control chapter-editor" id="chapterContent" rows="15" placeholder="<h1>Глава 1</h1><p>Текст главы...</p>" required></textarea>
                             <div class="form-text">Можно использовать HTML-теги: &lt;p&gt;, &lt;h1&gt;-&lt;h3&gt;, &lt;b&gt;, &lt;i&gt; и т.д.</div>
                         </div>
 
-                        <button type="submit" class="btn btn-success btn-lg">💾 Добавить главу</button>
-                        <button type="button" class="btn btn-info btn-lg ms-2" id="previewBtn">👁 Предпросмотр</button>
+                        <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
+                            <button type="submit" class="btn-submit">Добавить главу</button>
+                            <button type="button" class="btn-submit btn-submit-secondary" id="previewBtn">Предпросмотр</button>
+                        </div>
                     </form>
                 </div>
             </div>
@@ -171,12 +792,10 @@
             <!-- 3. Список книг -->
             <div class="tab-pane fade" id="books-list-pane" role="tabpanel">
                 <div class="admin-card">
-                    <h4 class="mb-4">📚 Все книги</h4>
+                    <h2 class="admin-card-title">Все книги</h2>
                     <div id="booksListContainer">
-                        <div class="text-center py-5">
-                            <div class="spinner-border text-primary" role="status">
-                                <span class="visually-hidden">Загрузка...</span>
-                            </div>
+                        <div style="text-align: center; padding: 3rem;">
+                            <div class="spinner-border text-primary" role="status"></div>
                         </div>
                     </div>
                 </div>
@@ -185,18 +804,18 @@
             <!-- 4. Модерация -->
             <div class="tab-pane fade" id="moderation-pane" role="tabpanel">
                 <div class="admin-card">
-                    <h4 class="mb-4">📋 Запросы на модерацию</h4>
-                    <div class="mb-3">
-                        <select id="moderationFilter" class="form-select">
+                    <h2 class="admin-card-title">Запросы на модерацию</h2>
+                    <div style="margin-bottom: 1.5rem;">
+                        <select id="moderationFilter" class="form-select" style="max-width: 300px;">
                             <option value="">Все запросы</option>
-                            <option value="pending">⏳ На рассмотрении</option>
-                            <option value="approved">✅ Одобрено</option>
-                            <option value="rejected">❌ Отклонено</option>
+                            <option value="pending">На рассмотрении</option>
+                            <option value="approved">Одобрено</option>
+                            <option value="rejected">Отклонено</option>
                         </select>
                     </div>
                     <div id="moderationContainer">
-                        <div class="text-center py-5">
-                            <div class="spinner-border text-primary"></div>
+                        <div style="text-align: center; padding: 3rem;">
+                            <div class="spinner-border text-primary" role="status"></div>
                         </div>
                     </div>
                 </div>
@@ -204,17 +823,16 @@
 
             <!-- 5. Заявки пользователей -->
             <div class="tab-pane fade" id="user-submissions-pane" role="tabpanel">
-                <ul class="nav nav-pills mb-3">
-                    <li class="nav-item">
-                        <button class="nav-link active" data-submission-type="books">Книги</button>
-                    </li>
-                    <li class="nav-item">
-                        <button class="nav-link" data-submission-type="chapters">Главы</button>
-                    </li>
-                </ul>
-                <div id="userSubmissionsContainer">
-                    <div class="text-center py-5">
-                        <div class="spinner-border text-primary"></div>
+                <div class="admin-card">
+                    <h2 class="admin-card-title">Заявки пользователей</h2>
+                    <div class="pills-group">
+                        <button class="pill-btn active" data-submission-type="books">Книги</button>
+                        <button class="pill-btn" data-submission-type="chapters">Главы</button>
+                    </div>
+                    <div id="userSubmissionsContainer">
+                        <div style="text-align: center; padding: 3rem;">
+                            <div class="spinner-border text-primary" role="status"></div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -227,16 +845,16 @@
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="previewModalLabel">👁 Предпросмотр главы</h5>
+                    <h5 class="modal-title" id="previewModalLabel">Предпросмотр главы</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <h4 id="previewTitle" class="mb-3"></h4>
-                    <hr>
-                    <div id="previewContent" class="chapter-preview"></div>
+                    <h4 id="previewTitle" style="margin-bottom: 1rem; color: var(--text-primary);"></h4>
+                    <hr style="border-color: var(--border-color);">
+                    <div id="previewContent" style="line-height: 1.8;"></div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
+                    <button type="button" class="btn-action" data-bs-dismiss="modal">Закрыть</button>
                 </div>
             </div>
         </div>
@@ -247,6 +865,7 @@
     <script src="js/theme.js"></script>
     <script src="js/toast.js"></script>
     <script src="js/api.js"></script>
+    <script src="js/user.js"></script>
     <script src="js/admin.js"></script>
 
 </body>

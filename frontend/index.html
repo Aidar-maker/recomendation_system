@@ -3,39 +3,165 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Книжный Советник - Вход</title>
-    <script>
-        (function() {
-            const saved = localStorage.getItem('siteTheme') || 'light';
-            document.documentElement.setAttribute('data-theme', saved);
-        })();
-    </script>
-    <!-- Bootstrap 5 CSS -->
+    <title>Book Maina - Вход</title>
+    
+    <!-- Подключаем наши стили -->
+    <link rel="stylesheet" href="styles/variables.css">
+    <link rel="stylesheet" href="styles/global.css">
+    <link rel="stylesheet" href="styles/components.css">
+    
+    <!-- Bootstrap (оставляем для табов, но переопределим стили) -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="css/themes.css">
+    
+    <style>
+        /* Специфичные стили для страницы входа */
+        body {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
+        }
+        
+        .auth-container {
+            width: 100%;
+            max-width: 450px;
+            padding: var(--spacing-lg);
+        }
+        
+        .auth-card {
+            background: var(--bg-card);
+            border-radius: var(--radius-lg);
+            padding: var(--spacing-xl);
+            box-shadow: var(--shadow-lg);
+            border: 1px solid var(--border-color);
+        }
+        
+        .auth-header {
+            text-align: center;
+            margin-bottom: var(--spacing-xl);
+        }
+        
+        .auth-logo {
+            font-size: var(--font-size-3xl);
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: var(--spacing-sm);
+        }
+        
+        .auth-logo .accent {
+            color: var(--accent-primary);
+        }
+        
+        .auth-subtitle {
+            color: var(--text-secondary);
+            font-size: var(--font-size-base);
+            margin: 0;
+        }
+        
+        .auth-tabs {
+            display: flex;
+            gap: var(--spacing-sm);
+            margin-bottom: var(--spacing-xl);
+            background: var(--bg-secondary);
+            padding: 4px;
+            border-radius: var(--radius-md);
+        }
+        
+        .auth-tab {
+            flex: 1;
+            padding: 0.75rem 1rem;
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            font-weight: 500;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .auth-tab:hover {
+            color: var(--text-primary);
+        }
+        
+        .auth-tab.active {
+            background: var(--accent-primary);
+            color: white;
+        }
+        
+        .form-label {
+            color: var(--text-secondary);
+            font-size: var(--font-size-sm);
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+        }
+        
+        .form-control {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            padding: 0.875rem 1rem;
+            margin-bottom: var(--spacing-lg);
+        }
+        
+        .form-control:focus {
+            background: var(--bg-secondary);
+            border-color: var(--accent-primary);
+            color: var(--text-primary);
+            box-shadow: 0 0 0 3px rgba(255, 107, 53, 0.1);
+        }
+        
+        .form-control::placeholder {
+            color: var(--text-muted);
+        }
+        
+        .btn-auth {
+            width: 100%;
+            padding: 0.875rem;
+            font-weight: 600;
+            margin-top: var(--spacing-md);
+        }
+        
+        .alert {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            padding: 1rem;
+            border-radius: var(--radius-md);
+            margin-bottom: var(--spacing-lg);
+        }
+        
+        .alert-danger {
+            border-left: 4px solid var(--danger);
+        }
+        
+        .alert-success {
+            border-left: 4px solid var(--success);
+        }
+    </style>
 </head>
 <body>
 
-    <div class="card auth-card shadow-lg">
-        <div class="card-header text-center bg-white border-0 pt-4 pb-2">
-            <h2 class="mb-0">Книжный Советник</h2>
-            <p class="text-muted mb-0">Добро пожаловать!</p>
-        </div>
-        
-        <div class="card-body p-4">
+    <div class="auth-container">
+        <div class="auth-card">
+            <!-- Заголовок -->
+            <div class="auth-header">
+                <h1 class="auth-logo">Book <span class="accent">Mania</span></h1>
+                <p class="auth-subtitle">Добро пожаловать</p>
+            </div>
             
-            <!-- Место для сообщений об ошибках (используется в auth.js) -->
+            <!-- Место для сообщений об ошибках -->
             <div id="alertContainer"></div>
 
             <!-- Табы: Вход / Регистрация -->
-            <ul class="nav nav-tabs nav-fill mb-4" id="authTabs" role="tablist">
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link active" id="login-tab" data-bs-toggle="tab" data-bs-target="#login-pane" type="button" role="tab">Вход</button>
-                </li>
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link" id="register-tab" data-bs-toggle="tab" data-bs-target="#register-pane" type="button" role="tab">Регистрация</button>
-                </li>
-            </ul>
+            <div class="auth-tabs" role="tablist">
+                <button class="auth-tab active" id="login-tab" data-bs-toggle="tab" data-bs-target="#login-pane" type="button" role="tab">
+                    Вход
+                </button>
+                <button class="auth-tab" id="register-tab" data-bs-toggle="tab" data-bs-target="#register-pane" type="button" role="tab">
+                    Регистрация
+                </button>
+            </div>
 
             <!-- Содержимое табов -->
             <div class="tab-content" id="authTabsContent">
@@ -43,34 +169,38 @@
                 <!-- Форма ВХОДА -->
                 <div class="tab-pane fade show active" id="login-pane" role="tabpanel">
                     <form id="loginForm">
-                        <div class="mb-3">
+                        <div>
                             <label for="loginEmail" class="form-label">Email</label>
                             <input type="email" class="form-control" id="loginEmail" placeholder="name@example.com" required>
                         </div>
-                        <div class="mb-3">
+                        <div>
                             <label for="loginPassword" class="form-label">Пароль</label>
                             <input type="password" class="form-control" id="loginPassword" placeholder="••••••••" required>
                         </div>
-                        <button type="submit" class="btn btn-primary w-100">Войти</button>
+                        <button type="submit" class="btn btn-primary btn-auth">
+                            Войти
+                        </button>
                     </form>
                 </div>
 
                 <!-- Форма регистрации -->
                 <div class="tab-pane fade" id="register-pane" role="tabpanel">
                     <form id="registerForm">
-                        <div class="mb-3">
+                        <div>
                             <label for="regUsername" class="form-label">Имя пользователя</label>
                             <input type="text" class="form-control" id="regUsername" placeholder="Ivan" required>
                         </div>
-                        <div class="mb-3">
+                        <div>
                             <label for="regEmail" class="form-label">Email</label>
                             <input type="email" class="form-control" id="regEmail" placeholder="name@example.com" required>
                         </div>
-                        <div class="mb-3">
+                        <div>
                             <label for="regPassword" class="form-label">Пароль</label>
                             <input type="password" class="form-control" id="regPassword" placeholder="••••••••" required>
                         </div>
-                        <button type="submit" class="btn btn-success w-100">Зарегистрироваться</button>
+                        <button type="submit" class="btn btn-auth" style="background: var(--success); color: white;">
+                            Зарегистрироваться
+                        </button>
                     </form>
                 </div>
 
@@ -78,12 +208,12 @@
         </div>
     </div>
 
-    <!-- Скрипты (Порядок важен!) -->
+    <!-- Скрипты -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script src="js/theme.js"></script>
     <script src="js/toast.js"></script>
     <script src="js/api.js"></script>
-    <script src="js/auth.js"></script> 
+    <script src="js/auth.js"></script>
 
 </body>
 </html>

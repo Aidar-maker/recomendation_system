@@ -19,7 +19,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             const submitBtn = requestForm.querySelector('button[type="submit"]');
             submitBtn.disabled = true;
-            submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Отправка...';
+            submitBtn.innerHTML = 'Отправка...';
 
             try {
                 await apiRequest('/moderation/request', {
@@ -35,7 +35,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 showToast(`Ошибка: ${error.message}`, 'error');
             } finally {
                 submitBtn.disabled = false;
-                submitBtn.innerHTML = '📤 Отправить запрос';
+                submitBtn.innerHTML = 'Отправить запрос';
             }
         });
     }
@@ -46,34 +46,43 @@ document.addEventListener('DOMContentLoaded', async () => {
             const requests = await apiRequest('/moderation/my-requests');
             
             if (requests.length === 0) {
-                myRequestsContainer.innerHTML = '<p class="text-muted">У вас пока нет запросов</p>';
+                myRequestsContainer.innerHTML = '<div class="empty-state">У вас пока нет запросов</div>';
                 return;
             }
 
-            const statusColors = {
-                'pending': 'warning',
-                'approved': 'success',
-                'rejected': 'danger'
-            };
-
-            const statusTexts = {
-                'pending': ' На рассмотрении',
-                'approved': '✅ Одобрено',
-                'rejected': ' Отклонено'
-            };
-
-            myRequestsContainer.innerHTML = requests.map(req => `
-                <div class="border-bottom pb-2 mb-2">
-                    <h6 class="mb-1">${req.title}</h6>
-                    <span class="badge bg-${statusColors[req.status]}">${statusTexts[req.status]}</span>
-                    ${req.admin_note ? `<p class="small text-muted mt-1">Комментарий: ${req.admin_note}</p>` : ''}
-                </div>
-            `).join('');
+            myRequestsContainer.innerHTML = `<div class="requests-list">` + 
+                requests.map(req => `
+                    <div class="request-item">
+                        <h6 class="request-item-title">${escapeHtml(req.title)}</h6>
+                        <span class="status-badge status-${req.status}">${getStatusText(req.status)}</span>
+                        ${req.admin_note ? `<div class="request-note"><b>Комментарий:</b> ${escapeHtml(req.admin_note)}</div>` : ''}
+                        ${req.created_at ? `<span class="request-date">${new Date(req.created_at).toLocaleDateString('ru-RU')}</span>` : ''}
+                    </div>
+                `).join('') +
+            `</div>`;
 
         } catch (e) {
             console.error('Ошибка загрузки запросов:', e);
-            myRequestsContainer.innerHTML = '<p class="text-danger">Ошибка загрузки</p>';
+            myRequestsContainer.innerHTML = '<div class="empty-state">Ошибка загрузки</div>';
         }
+    }
+
+    // Вспомогательная функция для статуса
+    function getStatusText(status) {
+        const map = {
+            'pending': 'На рассмотрении',
+            'approved': 'Одобрено',
+            'rejected': 'Отклонено'
+        };
+        return map[status] || status;
+    }
+
+    // Экранирование HTML
+    function escapeHtml(text) {
+        if (!text) return '';
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
     }
 
     // Выход

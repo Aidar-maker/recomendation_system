@@ -21,11 +21,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     const perPage = 12;
     let totalBooks = 0;
 
-    // Надёжная заглушка обложки
+    // Заглушка обложки
     const DEFAULT_COVER = 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
-        <svg xmlns="http://www.w3.org/2000/svg" width="300" height="400" viewBox="0 0 300 400">
-            <rect fill="#e9ecef" width="300" height="400"/>
-            <text fill="#6c757d" font-family="Arial, sans-serif" font-size="16" x="50%" y="50%" text-anchor="middle" dy=".3em">
+        <svg xmlns="http://www.w3.org/2000/svg" width="300" height="450" viewBox="0 0 300 450">
+            <rect fill="#2a2a2a" width="300" height="450"/>
+            <text fill="#707070" font-family="Arial, sans-serif" font-size="16" x="50%" y="50%" text-anchor="middle" dy=".3em">
                 Нет обложки
             </text>
         </svg>
@@ -47,7 +47,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
 
-    // === ЗАГРУЗКА КНИГ (через новый эндпоинт) ===
+    // === ЗАГРУЗКА КНИГ ===
     async function loadBooks() {
         try {
             booksGrid.innerHTML = `
@@ -58,18 +58,20 @@ document.addEventListener('DOMContentLoaded', async () => {
                 </div>
             `;
 
-            // Получаем все книги через новый эндпоинт
             const response = await apiRequest('/books');
             allBooks = response.books;
+            totalBooks = response.total;
 
             renderBooks(allBooks);
+            renderPagination();
             
         } catch (e) {
             console.error('Ошибка загрузки книг:', e);
             booksGrid.innerHTML = `
                 <div class="col-12">
-                    <div class="alert alert-danger">
-                        ❌ Ошибка: ${e.message}
+                    <div class="empty-state">
+                        <div class="empty-state-title">Ошибка загрузки</div>
+                        <div class="empty-state-text">${e.message}</div>
                     </div>
                 </div>
             `;
@@ -78,13 +80,12 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // === ФИЛЬТРАЦИЯ ===
     async function filterBooks(page = 1) {
-        currentPage = page; // Сохраняем текущую страницу
+        currentPage = page;
         
         const searchTerm = searchInput.value.trim();
         const selectedGenre = genreFilter.value;
         const sortValue = document.getElementById('sortFilter').value;
 
-        // Показываем спиннер
         booksGrid.innerHTML = `
             <div class="col-12 text-center py-5">
                 <div class="spinner-border text-primary" role="status">
@@ -106,17 +107,18 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             const response = await apiRequest(`/books?${params.toString()}`);
             const filtered = response.books;
-            totalBooks = response.total; // Сохраняем общее количество
+            totalBooks = response.total;
 
             renderBooks(filtered);
-            renderPagination(); // Рисуем пагинацию
+            renderPagination();
             
         } catch (e) {
             console.error('Ошибка фильтрации:', e);
             booksGrid.innerHTML = `
                 <div class="col-12">
-                    <div class="alert alert-danger">
-                        ❌ Ошибка: ${e.message}
+                    <div class="empty-state">
+                        <div class="empty-state-title">Ошибка фильтрации</div>
+                        <div class="empty-state-text">${e.message}</div>
                     </div>
                 </div>
             `;
@@ -139,9 +141,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         
         if (books.length === 0) {
             booksGrid.innerHTML = `
-                <div class="col-12 text-center py-5">
-                    <h4>📚 Книги не найдены</h4>
-                    <p class="text-muted">Попробуйте изменить параметры поиска</p>
+                <div class="col-12">
+                    <div class="empty-state">
+                        <div class="empty-state-title">Книги не найдены</div>
+                        <div class="empty-state-text">Попробуйте изменить параметры поиска</div>
+                    </div>
                 </div>
             `;
             booksCount.textContent = '0 книг';
@@ -156,36 +160,37 @@ document.addEventListener('DOMContentLoaded', async () => {
                 ? book.image_url 
                 : DEFAULT_COVER;
             
-            // Формируем бейджи жанров
+            // Жанры
             const genresHtml = book.genres && book.genres.length > 0
-                ? book.genres.map(g => `<span class="badge bg-secondary genre-badge">${escapeHtml(g.genre_name)}</span>`).join(' ')
+                ? `<div class="book-genres">
+                    ${book.genres.slice(0, 3).map(g => `<span class="genre-badge">${escapeHtml(g.genre_name)}</span>`).join('')}
+                    ${book.genres.length > 3 ? `<span class="genre-badge">+${book.genres.length - 3}</span>` : ''}
+                   </div>`
                 : '';
             
             // Рейтинг
             const ratingHtml = book.avg_rating 
-                ? `<span class="badge bg-success">★ ${book.avg_rating}</span>`
-                : '';
+                ? `<span class="book-rating">★ ${book.avg_rating}</span>`
+                : '<span></span>';
             
             const card = document.createElement('div');
-            card.className = 'card book-card h-100';
+            card.className = 'book-card';
             card.onclick = () => openBook(book.book_id);
             
             card.innerHTML = `
                 <img src="${imageUrl}" 
-                     class="card-img-top book-cover" 
+                     class="book-cover" 
                      alt="${escapeHtml(book.title)}"
                      onerror="this.onerror=null; this.src='${DEFAULT_COVER}'">
-                <div class="card-body d-flex flex-column">
-                    <h5 class="card-title">${escapeHtml(book.title)}</h5>
-                    <h6 class="card-subtitle mb-2 text-muted">${escapeHtml(book.author)}</h6>
-                    <div class="mb-2">${genresHtml}</div>
-                    <div class="mt-auto">
-                        <div class="d-flex justify-content-between align-items-center">
-                            ${ratingHtml}
-                            <button class="btn btn-sm btn-primary" onclick="event.stopPropagation(); openBook(${book.book_id})">
-                                📖 Читать
-                            </button>
-                        </div>
+                <div class="book-info">
+                    <h5 class="book-title">${escapeHtml(book.title)}</h5>
+                    <p class="book-author">${escapeHtml(book.author)}</p>
+                    ${genresHtml}
+                    <div class="book-meta">
+                        ${ratingHtml}
+                        <button class="book-btn" onclick="event.stopPropagation(); openBook(${book.book_id})">
+                            Читать
+                        </button>
                     </div>
                 </div>
             `;
@@ -194,7 +199,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             booksGrid.appendChild(col);
         });
 
-        booksCount.textContent = `${books.length} ${getBookCountWord(books.length)}`;
+        booksCount.textContent = `${totalBooks} ${getBookCountWord(totalBooks)}`;
     }
 
     // === ПАГИНАЦИЯ ===
@@ -204,7 +209,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         const totalPages = Math.ceil(totalBooks / perPage);
         
-        // Если страниц 1 или меньше — не показываем пагинацию
         if (totalPages <= 1) {
             pagination.innerHTML = '';
             return;
@@ -213,35 +217,36 @@ document.addEventListener('DOMContentLoaded', async () => {
         let html = '';
 
         // Кнопка "Назад"
-        if (currentPage > 1) {
-            html += `
-                <li class="page-item">
-                    <button class="page-link" onclick="changePage(${currentPage - 1})">← Назад</button>
-                </li>
-            `;
-        } else {
-            html += `<li class="page-item disabled"><span class="page-link">← Назад</span></li>`;
+        html += `<button class="page-btn" ${currentPage === 1 ? 'disabled' : ''} onclick="changePage(${currentPage - 1})">Назад</button>`;
+
+        // Номера страниц (показываем максимум 7 кнопок)
+        let startPage = Math.max(1, currentPage - 3);
+        let endPage = Math.min(totalPages, startPage + 6);
+        
+        if (endPage - startPage < 6) {
+            startPage = Math.max(1, endPage - 6);
         }
 
-        // Номера страниц
-        for (let i = 1; i <= totalPages; i++) {
-            if (i === currentPage) {
-                html += `<li class="page-item active"><span class="page-link">${i}</span></li>`;
-            } else {
-                html += `<li class="page-item"><button class="page-link" onclick="changePage(${i})">${i}</button></li>`;
+        if (startPage > 1) {
+            html += `<button class="page-btn" onclick="changePage(1)">1</button>`;
+            if (startPage > 2) {
+                html += `<span class="page-btn" style="cursor: default; border: none;">...</span>`;
             }
         }
 
-        // Кнопка "Вперёд"
-        if (currentPage < totalPages) {
-            html += `
-                <li class="page-item">
-                    <button class="page-link" onclick="changePage(${currentPage + 1})">Вперёд →</button>
-                </li>
-            `;
-        } else {
-            html += `<li class="page-item disabled"><span class="page-link">Вперёд →</span></li>`;
+        for (let i = startPage; i <= endPage; i++) {
+            html += `<button class="page-btn ${i === currentPage ? 'active' : ''}" onclick="changePage(${i})">${i}</button>`;
         }
+
+        if (endPage < totalPages) {
+            if (endPage < totalPages - 1) {
+                html += `<span class="page-btn" style="cursor: default; border: none;">...</span>`;
+            }
+            html += `<button class="page-btn" onclick="changePage(${totalPages})">${totalPages}</button>`;
+        }
+
+        // Кнопка "Вперёд"
+        html += `<button class="page-btn" ${currentPage === totalPages ? 'disabled' : ''} onclick="changePage(${currentPage + 1})">Вперёд</button>`;
 
         pagination.innerHTML = html;
     }
@@ -249,7 +254,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Глобальная функция для смены страницы
     window.changePage = function(page) {
         filterBooks(page);
-        // Прокручиваем к началу каталога
         window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 

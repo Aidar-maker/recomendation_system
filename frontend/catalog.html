@@ -3,55 +3,434 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Книжный Советник - Каталог</title>
+    <title>Book Mania - Каталог</title>
     <script>
         (function() {
-            const saved = localStorage.getItem('siteTheme') || 'light';
+            const saved = localStorage.getItem('siteTheme') || 'dark';
             document.documentElement.setAttribute('data-theme', saved);
         })();
     </script>
-    <!-- Bootstrap 5 CSS -->
+    
+    <link rel="stylesheet" href="styles/variables.css">
+    <link rel="stylesheet" href="styles/global.css">
+    <link rel="stylesheet" href="styles/components.css">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="css/themes.css">
+    
+    <style>
+        body {
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+        }
+
+        /* ===== NAVBAR ===== */
+        .navbar {
+            background-color: var(--bg-secondary);
+            border-bottom: 1px solid var(--border-color);
+            padding: 1rem 0;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .navbar-container {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 2rem;
+        }
+
+        .navbar-brand {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            text-decoration: none;
+        }
+
+        .navbar-brand .accent {
+            color: var(--accent-primary);
+        }
+
+        .navbar-nav {
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            gap: 0.5rem;
+            list-style: none;
+            margin: 0;
+            padding: 0;
+        }
+
+        .navbar-nav li {
+            display: inline-block;
+        }
+
+        .nav-link {
+            color: var(--text-secondary);
+            font-weight: 500;
+            padding: 0.5rem 1rem;
+            border-radius: var(--radius-md);
+            transition: all 0.2s;
+            text-decoration: none;
+            font-size: 0.9rem;
+            display: inline-block;
+        }
+
+        .nav-link:hover,
+        .nav-link.active {
+            color: var(--text-primary);
+            background-color: var(--bg-hover);
+        }
+
+        .nav-link.admin-only {
+            color: var(--accent-primary);
+        }
+
+        .navbar-actions {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .user-email {
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+        }
+
+        .btn-logout {
+            background: transparent;
+            border: 1px solid var(--border-color);
+            color: var(--text-secondary);
+            padding: 0.4rem 1rem;
+            border-radius: var(--radius-md);
+            cursor: pointer;
+            font-size: 0.875rem;
+            transition: all 0.2s;
+        }
+
+        .btn-logout:hover {
+            background: var(--bg-hover);
+            color: var(--danger);
+            border-color: var(--danger);
+        }
+
+        /* ===== FILTERS ===== */
+        .filters-section {
+            background-color: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .filters-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr;
+            gap: 1rem;
+            align-items: end;
+        }
+
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .filter-label {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            font-weight: 600;
+        }
+
+        .filter-input,
+        .filter-select {
+            background-color: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            padding: 0.75rem 1rem;
+            border-radius: var(--radius-md);
+            font-size: 0.95rem;
+            transition: all 0.2s;
+            width: 100%;
+        }
+
+        .filter-input:focus,
+        .filter-select:focus {
+            outline: none;
+            border-color: var(--accent-primary);
+            background-color: var(--bg-secondary);
+            box-shadow: 0 0 0 3px rgba(255, 107, 53, 0.1);
+        }
+
+        .filter-input::placeholder {
+            color: var(--text-muted);
+        }
+
+        .filter-select {
+            appearance: none;
+            background-image: url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23b0b0b0' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 1rem center;
+            padding-right: 2.5rem;
+            cursor: pointer;
+        }
+
+        /* ===== HEADER ===== */
+        .catalog-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+
+        .catalog-title {
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin: 0;
+        }
+
+        .catalog-count {
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+        }
+
+        /* ===== BOOK CARDS ===== */
+        .book-card {
+            background-color: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            overflow: hidden;
+            transition: all 0.2s;
+            cursor: pointer;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .book-card:hover {
+            transform: translateY(-4px);
+            border-color: var(--accent-primary);
+            box-shadow: var(--shadow-md);
+        }
+
+        .book-cover {
+            width: 100%;
+            aspect-ratio: 2/3;
+            object-fit: cover;
+            background-color: var(--bg-secondary);
+        }
+
+        .book-info {
+            padding: 1rem;
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+        }
+
+        .book-title {
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin: 0 0 0.25rem 0;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .book-author {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            margin: 0 0 0.75rem 0;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .book-genres {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.25rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .genre-badge {
+            background-color: var(--bg-hover);
+            color: var(--text-secondary);
+            padding: 0.2rem 0.5rem;
+            border-radius: var(--radius-sm);
+            font-size: 0.7rem;
+            font-weight: 500;
+        }
+
+        .book-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: auto;
+            gap: 0.5rem;
+        }
+
+        .book-rating {
+            font-size: 0.85rem;
+            color: var(--warning);
+            font-weight: 600;
+        }
+
+        .book-btn {
+            background-color: var(--accent-primary);
+            color: white;
+            border: none;
+            padding: 0.4rem 0.9rem;
+            border-radius: var(--radius-sm);
+            font-size: 0.8rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .book-btn:hover {
+            background-color: var(--accent-hover);
+        }
+
+        /* ===== EMPTY STATE ===== */
+        .empty-state {
+            text-align: center;
+            padding: 4rem 2rem;
+            color: var(--text-muted);
+            grid-column: 1 / -1;
+        }
+
+        .empty-state-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            margin-bottom: 0.5rem;
+        }
+
+        .empty-state-text {
+            font-size: 0.95rem;
+            color: var(--text-muted);
+        }
+
+        /* ===== PAGINATION ===== */
+        .pagination-container {
+            display: flex;
+            justify-content: center;
+            margin-top: 3rem;
+            gap: 0.25rem;
+        }
+
+        .page-btn {
+            background-color: var(--bg-card);
+            border: 1px solid var(--border-color);
+            color: var(--text-secondary);
+            padding: 0.5rem 1rem;
+            border-radius: var(--radius-md);
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 500;
+            transition: all 0.2s;
+            min-width: 40px;
+        }
+
+        .page-btn:hover:not(:disabled):not(.active) {
+            background-color: var(--bg-hover);
+            color: var(--text-primary);
+            border-color: var(--border-light);
+        }
+
+        .page-btn.active {
+            background-color: var(--accent-primary);
+            color: white;
+            border-color: var(--accent-primary);
+        }
+
+        .page-btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        /* ===== RESPONSIVE ===== */
+        @media (max-width: 768px) {
+            .navbar-container {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .navbar-nav {
+                flex-wrap: wrap;
+                margin-top: 1rem;
+                padding-top: 1rem;
+                border-top: 1px solid var(--border-color);
+            }
+            
+            .filters-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .catalog-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 0.5rem;
+            }
+        }
+    </style>
 </head>
 <body>
 
     <!-- Навигация -->
-    <nav class="navbar navbar-dark bg-dark mb-4">
+    <nav class="navbar">
         <div class="container">
-            <a class="navbar-brand" href="index.html">📚 Книжный Советник</a>
-            <div class="d-flex">
-                <a href="admin.html" class="btn btn-outline-warning me-2 admin-only">⚙️ Админка</a>
-                <a href="dashboard.html" class="btn btn-outline-light me-2">📚 Моя библиотека</a>     
-                <button class="btn btn-outline-danger" id="logout-btn">Выйти</button>
+            <div class="navbar-container">
+                <a class="navbar-brand" href="dashboard.html">
+                    Book<span class="accent">Mania</span>
+                </a>
+                
+                <ul class="navbar-nav">
+                    <li><a href="dashboard.html" class="nav-link">Главная</a></li>
+                    <li><a href="catalog.html" class="nav-link active">Каталог</a></li>
+                    <li><a href="submit_content.html" class="nav-link">Подать заявку</a></li>
+                    <li><a href="request_moderation.html" class="nav-link">Запросы</a></li>
+                    <li><a href="admin.html" class="nav-link admin-only">Админка</a></li>
+                </ul>
+                
+                <div class="navbar-actions">
+                    <span class="user-email" id="user-email">Загрузка...</span>
+                    <button class="btn-logout" id="logout-btn">Выйти</button>
+                </div>
             </div>
         </div>
     </nav>
 
     <!-- Основной контент -->
-    <div class="container">    
-        <!-- Поиск -->
-        <div class="search-box">
-            <div class="row g-3">
-                <div class="col-md-6">
-                    <input type="text" id="searchInput" class="form-control form-control-lg" 
-                        placeholder="🔍 Поиск по названию или автору...">
+    <div class="container" style="padding: 2rem 1rem;">
+        
+        <!-- Фильтры -->
+        <div class="filters-section">
+            <div class="filters-grid">
+                <div class="filter-group">
+                    <label class="filter-label">Поиск</label>
+                    <input type="text" id="searchInput" class="filter-input" 
+                        placeholder="По названию или автору...">
                 </div>
-                <div class="col-md-3">
-                    <select id="genreFilter" class="form-select form-select-lg">
+                <div class="filter-group">
+                    <label class="filter-label">Жанр</label>
+                    <select id="genreFilter" class="filter-select">
                         <option value="">Все жанры</option>
-                        <!-- Жанры загрузятся через JS -->
                     </select>
                 </div>
-                <!-- НОВЫЙ БЛОК: Сортировка -->
-                <div class="col-md-3">
-                    <select id="sortFilter" class="form-select form-select-lg">
+                <div class="filter-group">
+                    <label class="filter-label">Сортировка</label>
+                    <select id="sortFilter" class="filter-select">
                         <option value="title-asc">По названию (А-Я)</option>
                         <option value="title-desc">По названию (Я-А)</option>
                         <option value="year-desc">Сначала новые</option>
                         <option value="year-asc">Сначала старые</option>
-                        <option value="rating-desc">По рейтингу ↓</option>
-                        <option value="rating-asc">По рейтингу ↑</option>
+                        <option value="rating-desc">По рейтингу (убыв.)</option>
+                        <option value="rating-asc">По рейтингу (возр.)</option>
                         <option value="created_at-desc">Сначала добавленные</option>
                     </select>
                 </div>
@@ -59,26 +438,22 @@
         </div>
 
         <!-- Заголовок -->
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <h2>📚 Каталог книг</h2>
-            <span class="text-muted" id="booksCount">Загрузка...</span>
+        <div class="catalog-header">
+            <h2 class="catalog-title">Каталог книг</h2>
+            <span class="catalog-count" id="booksCount">Загрузка...</span>
         </div>
 
         <!-- Сетка книг -->
         <div class="row" id="booksGrid">
-            <!-- Сюша JavaScript вставит книги -->
             <div class="col-12 text-center py-5">
                 <div class="spinner-border text-primary" role="status">
                     <span class="visually-hidden">Загрузка...</span>
                 </div>
             </div>
         </div>
-        <!-- ПАГИНАЦИЯ -->
-        <nav aria-label="Навигация по страницам" class="mt-4">
-            <ul class="pagination justify-content-center" id="pagination">
-                <!-- Сюда JavaScript вставит кнопки страниц -->
-            </ul>
-        </nav>
+        
+        <!-- Пагинация -->
+        <div class="pagination-container" id="pagination"></div>
     </div>
 
     <!-- Скрипты -->

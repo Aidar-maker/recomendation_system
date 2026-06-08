@@ -12,7 +12,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const chapterId = parseInt(urlParams.get('chapter'));
 
     if (!bookId || !chapterId) {
-        showToast('Не указаны книга или глава', 'error')
+        showToast('Не указаны книга или глава', 'error');
         window.location.href = 'catalog.html';
         return;
     }
@@ -49,14 +49,13 @@ document.addEventListener('DOMContentLoaded', async () => {
             await loadProgress();
             setupScrollTracking();
 
-            console.log(`✅ Глава загружена: ${currentChapter.title}`);
-
         } catch (e) {
             console.error('Ошибка загрузки:', e);
             chapterContentEl.innerHTML = `
-                <div class="alert alert-danger">
-                    ❌ Ошибка: ${e.message}<br>
-                    <a href="catalog.html" class="btn btn-outline-danger mt-2">← Вернуться в каталог</a>
+                <div class="error-state">
+                    <div class="error-title">Ошибка загрузки</div>
+                    <p>${e.message}</p>
+                    <a href="catalog.html" class="error-link">Вернуться в каталог</a>
                 </div>
             `;
         }
@@ -93,29 +92,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     function renderChapterSelector(allChapters, currentIndex) {
-        // Ищем или создаём контейнер для селектора
-        let selectorContainer = document.querySelector('.chapter-selector');
-        if (!selectorContainer) {
-            selectorContainer = document.createElement('div');
-            selectorContainer.className = 'chapter-selector';
-            selectorContainer.style.cssText = `
-                position: fixed;
-                top: 70px;
-                right: 20px;
-                z-index: 100;
-                background: white;
-                border-radius: 8px;
-                box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-                padding: 10px;
-                max-width: 300px;
-            `;
-            
-            // Вставляем после header
-            const header = document.querySelector('.reader-header');
-            if (header) {
-                header.parentNode.insertBefore(selectorContainer, header.nextSibling);
-            }
-        }
+        const selectorBottom = document.getElementById('chapterSelectorBottom');
+        if (!selectorBottom) return;
 
         const options = allChapters.map((chapter, index) => {
             const isSelected = index === currentIndex;
@@ -124,12 +102,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             </option>`;
         }).join('');
 
-        selectorContainer.innerHTML = `
-            <label class="form-label mb-1"><b>Выбрать главу:</b></label>
-            <select class="form-select form-select-sm" onchange="navigateToChapter(parseInt(this.value))">
-                ${options}
-            </select>
-        `;
+        selectorBottom.innerHTML = options;
     }
 
     // Переход к другой главе
@@ -150,9 +123,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                 // Восстанавливаем позицию скролла
                 const contentHeight = chapterContentEl.scrollHeight;
                 const scrollPos = (progress.position_percent / 100) * contentHeight;
-                window.scrollTo(0, scrollPos - 100); // -100 для отступа от верха
+                window.scrollTo(0, scrollPos - 100);
                 updateProgressBar(progress.position_percent);
-                console.log(`📍 Прогресс восстановлен: ${progress.position_percent}%`);
             }
         } catch (e) {
             console.warn('Не удалось загрузить прогресс:', e);
@@ -186,7 +158,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Сохранение прогресса на сервер
     async function saveProgress(percent = null) {
         if (percent === null) {
-            // Вычисляем процент
             const scrollTop = window.scrollY;
             const docHeight = document.documentElement.scrollHeight - window.innerHeight;
             percent = Math.round((scrollTop / docHeight) * 100);
@@ -200,7 +171,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                     position_percent: percent
                 }
             });
-            console.log(`💾 Прогресс сохранён: ${percent}%`);
         } catch (e) {
             console.warn('Не удалось сохранить прогресс:', e);
         }
@@ -208,14 +178,12 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // === НАСТРОЙКИ ЧТЕНИЯ ===
 
-    // Переключение темы
     function toggleTheme() {
         cycleTheme();
     }
 
     function loadTheme() {
         // Тема загружается автоматически через theme.js
-        // Здесь можно добавить специфичные для читалки настройки
     }
 
     // Настройка размера шрифта
@@ -225,34 +193,54 @@ document.addEventListener('DOMContentLoaded', async () => {
         
         if (size !== 'medium') {
             content.classList.add(`font-${size}`);
+        } else {
+            content.classList.add('font-medium');
         }
         
+        // Обновляем активную кнопку
+        document.querySelectorAll('.font-size-btn').forEach(btn => {
+            btn.classList.remove('active');
+        });
+        event.target.classList.add('active');
+        
         localStorage.setItem('readerFontSize', size);
-        console.log(`🔤 Размер шрифта: ${size}`);
     }
 
     // Загрузка сохранённого размера шрифта
     function loadFontSize() {
         const saved = localStorage.getItem('readerFontSize');
         if (saved) {
-            setFontSize(saved);
+            const content = document.getElementById('chapterContent');
+            content.classList.remove('font-small', 'font-medium', 'font-large');
+            
+            if (saved !== 'medium') {
+                content.classList.add(`font-${saved}`);
+            } else {
+                content.classList.add('font-medium');
+            }
+            
+            // Обновляем активную кнопку
+            document.querySelectorAll('.font-size-btn').forEach(btn => {
+                btn.classList.remove('active');
+                if (btn.textContent.includes(saved === 'small' ? '-' : saved === 'large' ? '+' : 'A') && 
+                    (saved === 'medium' || btn.textContent.includes(saved === 'small' ? '-' : '+'))) {
+                    btn.classList.add('active');
+                }
+            });
         }
     }
 
-    // === ИНИЦИАЛИЗАЦИЯ ===
+     // === ИНИЦИАЛИЗАЦИЯ ===
 
-    // Загружаем настройки
     loadTheme();
     loadFontSize();
 
-    // Делаем функции доступными глобально (для onclick в HTML)
     window.toggleTheme = toggleTheme;
     window.setFontSize = setFontSize;
+    window.navigateToChapter = navigateToChapter; 
 
-    // Загружаем главу
     await loadChapter();
 
-    // Сохраняем прогресс при уходе со страницы
     window.addEventListener('beforeunload', () => {
         saveProgress();
     });

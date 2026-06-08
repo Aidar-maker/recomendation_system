@@ -3,94 +3,540 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Книжный Советник - Детали книги</title>
+    <title>Book Mania - Детали книги</title>
     <script>
         (function() {
-            const saved = localStorage.getItem('siteTheme') || 'light';
+            const saved = localStorage.getItem('siteTheme') || 'dark';
             document.documentElement.setAttribute('data-theme', saved);
         })();
     </script>
-    <!-- Bootstrap 5 CSS -->
+    
+    <link rel="stylesheet" href="styles/variables.css">
+    <link rel="stylesheet" href="styles/global.css">
+    <link rel="stylesheet" href="styles/components.css">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="css/themes.css">
+    
+    <style>
+        body {
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+        }
+
+        /* ===== NAVBAR ===== */
+        .navbar {
+            background-color: var(--bg-secondary);
+            border-bottom: 1px solid var(--border-color);
+            padding: 1rem 0;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .navbar-container {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 2rem;
+        }
+
+        .navbar-brand {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            text-decoration: none;
+        }
+
+        .navbar-brand .accent {
+            color: var(--accent-primary);
+        }
+
+        .navbar-nav {
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            gap: 0.5rem;
+            list-style: none;
+            margin: 0;
+            padding: 0;
+        }
+
+        .navbar-nav li {
+            display: inline-block;
+        }
+
+        .nav-link {
+            color: var(--text-secondary);
+            font-weight: 500;
+            padding: 0.5rem 1rem;
+            border-radius: var(--radius-md);
+            transition: all 0.2s;
+            text-decoration: none;
+            font-size: 0.9rem;
+            display: inline-block;
+        }
+
+        .nav-link:hover,
+        .nav-link.active {
+            color: var(--text-primary);
+            background-color: var(--bg-hover);
+        }
+
+        .nav-link.admin-only {
+            color: var(--accent-primary);
+        }
+
+        .navbar-actions {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .user-email {
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+        }
+
+        .btn-logout {
+            background: transparent;
+            border: 1px solid var(--border-color);
+            color: var(--text-secondary);
+            padding: 0.4rem 1rem;
+            border-radius: var(--radius-md);
+            cursor: pointer;
+            font-size: 0.875rem;
+            transition: all 0.2s;
+        }
+
+        .btn-logout:hover {
+            background: var(--bg-hover);
+            color: var(--danger);
+            border-color: var(--danger);
+        }
+
+        /* ===== BOOK DETAIL LAYOUT ===== */
+        .book-detail-container {
+            display: grid;
+            grid-template-columns: 350px 1fr;
+            gap: 3rem;
+            margin-top: 2rem;
+        }
+
+        /* ===== LEFT SIDEBAR ===== */
+        .book-sidebar {
+            position: sticky;
+            top: 100px;
+            height: fit-content;
+        }
+
+        .book-cover-wrapper {
+            background-color: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            overflow: hidden;
+            margin-bottom: 1.5rem;
+        }
+
+        .book-cover-large {
+            width: 100%;
+            aspect-ratio: 2/3;
+            object-fit: cover;
+            display: block;
+        }
+
+        .action-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .btn-action {
+            padding: 0.875rem 1.5rem;
+            border: none;
+            border-radius: var(--radius-md);
+            font-weight: 600;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: center;
+        }
+
+        .btn-action-primary {
+            background-color: var(--accent-primary);
+            color: white;
+        }
+
+        .btn-action-primary:hover {
+            background-color: var(--accent-hover);
+            transform: translateY(-1px);
+        }
+
+        .btn-action-primary:disabled {
+            background-color: var(--bg-hover);
+            color: var(--text-muted);
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-action-outline {
+            background-color: transparent;
+            color: var(--text-secondary);
+            border: 1px solid var(--border-color);
+        }
+
+        .btn-action-outline:hover {
+            background-color: var(--bg-hover);
+            color: var(--text-primary);
+            border-color: var(--border-light);
+        }
+
+        .btn-action-danger {
+            background-color: var(--danger);
+            color: white;
+        }
+
+        .btn-action-danger:hover {
+            background-color: #d32f2f;
+        }
+
+        /* ===== RATING ===== */
+        .rating-section {
+            background-color: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            padding: 1.5rem;
+        }
+
+        .rating-label {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            margin-bottom: 0.75rem;
+            font-weight: 500;
+        }
+
+        .rating-stars {
+            display: flex;
+            gap: 0.25rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .star {
+            font-size: 1.75rem;
+            color: var(--border-color);
+            cursor: pointer;
+            transition: color 0.2s;
+            line-height: 1;
+        }
+
+        .star:hover {
+            color: var(--warning);
+        }
+
+        .star.active {
+            color: var(--warning);
+        }
+
+        .rating-text {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+        /* ===== MAIN CONTENT ===== */
+        .book-main-content {
+            min-width: 0;
+        }
+
+        .book-header {
+            margin-bottom: 2rem;
+        }
+
+        .book-title-large {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin: 0 0 0.5rem 0;
+            line-height: 1.2;
+        }
+
+        .book-author-large {
+            font-size: 1.25rem;
+            color: var(--text-secondary);
+            margin: 0 0 1rem 0;
+        }
+
+        .book-genres {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .genre-badge {
+            background-color: var(--bg-hover);
+            color: var(--text-secondary);
+            padding: 0.4rem 0.9rem;
+            border-radius: var(--radius-md);
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+
+        .book-meta-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .meta-item {
+            background-color: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            padding: 1rem;
+        }
+
+        .meta-label {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+
+        .meta-value {
+            font-size: 1rem;
+            color: var(--text-primary);
+            font-weight: 500;
+        }
+
+        /* ===== DESCRIPTION ===== */
+        .book-description-section {
+            background-color: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .section-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin: 0 0 1rem 0;
+        }
+
+        .book-description-text {
+            color: var(--text-secondary);
+            line-height: 1.8;
+            font-size: 1rem;
+            margin: 0;
+        }
+
+        /* ===== CHAPTERS ===== */
+        .chapters-section {
+            background-color: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            padding: 2rem;
+        }
+
+        .chapters-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .chapters-count {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+        }
+
+        .chapter-item {
+            background-color: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            padding: 1rem 1.25rem;
+            margin-bottom: 0.75rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .chapter-item:hover {
+            background-color: var(--bg-hover);
+            border-color: var(--accent-primary);
+            transform: translateX(4px);
+        }
+
+        .chapter-info {
+            flex: 1;
+        }
+
+        .chapter-number {
+            font-size: 0.75rem;
+            color: var(--accent-primary);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+
+        .chapter-title {
+            font-size: 1rem;
+            color: var(--text-primary);
+            font-weight: 500;
+            margin: 0;
+        }
+
+        .chapter-action {
+            color: var(--text-muted);
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+
+        .empty-chapters {
+            text-align: center;
+            padding: 3rem 2rem;
+            color: var(--text-muted);
+        }
+
+        /* ===== RESPONSIVE ===== */
+        @media (max-width: 992px) {
+            .book-detail-container {
+                grid-template-columns: 1fr;
+                gap: 2rem;
+            }
+
+            .book-sidebar {
+                position: static;
+                max-width: 350px;
+                margin: 0 auto;
+            }
+
+            .book-title-large {
+                font-size: 2rem;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .navbar-container {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .navbar-nav {
+                flex-wrap: wrap;
+                margin-top: 1rem;
+                padding-top: 1rem;
+                border-top: 1px solid var(--border-color);
+            }
+
+            .book-meta-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
 </head>
 <body>
 
     <!-- Навигация -->
-    <nav class="navbar navbar-dark bg-dark mb-4">
+    <nav class="navbar">
         <div class="container">
-            <a class="navbar-brand" href="index.html">📚 Книжный Советник</a>
-            <div class="d-flex">
-                <a href="catalog.html" class="btn btn-outline-light me-2">📖 Каталог</a>
-                <a href="admin.html" class="btn btn-outline-warning me-2 admin-only">⚙️ Админка</a>
-                <a href="dashboard.html" class="btn btn-outline-light me-2"> Моя библиотека</a>
-                <button class="btn btn-outline-danger" id="logout-btn">Выйти</button>
+            <div class="navbar-container">
+                <a class="navbar-brand" href="dashboard.html">
+                    Book<span class="accent">Mania</span>
+                </a>
+                
+                <ul class="navbar-nav">
+                    <li><a href="dashboard.html" class="nav-link">Главная</a></li>
+                    <li><a href="catalog.html" class="nav-link">Каталог</a></li>
+                    <li><a href="submit_content.html" class="nav-link">Подать заявку</a></li>
+                    <li><a href="request_moderation.html" class="nav-link">Запросы</a></li>
+                    <li><a href="admin.html" class="nav-link admin-only">Админка</a></li>
+                </ul>
+                
+                <div class="navbar-actions">
+                    <span class="user-email" id="user-email">Загрузка...</span>
+                    <button class="btn-logout" id="logout-btn">Выйти</button>
+                </div>
             </div>
         </div>
     </nav>
 
     <!-- Основной контент -->
     <div class="container">
-        <div class="row">
+        <div class="book-detail-container">
+            
             <!-- Левая колонка: обложка и действия -->
-            <div class="col-md-4">
-                <div class="book-info text-center">
-                    <img id="bookCover" src="" alt="Обложка книги" class="img-fluid book-cover-large mb-3"
-                         onerror="this.src='data:image/svg+xml;charset=UTF-8,' + encodeURIComponent('<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'300\' height=\'400\'><rect fill=\'%23e9ecef\' width=\'300\' height=\'400\'/><text fill=\'%236c757d\' font-family=\'Arial\' font-size=\'16\' x=\'50%25\' y=\'50%25\' text-anchor=\'middle\' dy=\'.3em\'>Нет обложки</text></svg>')">
-                    
-                    <!-- Кнопки действий -->
-                    <div class="action-buttons d-grid gap-2">
-                        <button id="startReadingBtn" class="btn btn-primary btn-lg">📖 Начать чтение</button>
-                        <button id="addToFavoritesBtn" class="btn btn-outline-danger">❤️ В избранное</button>
-                        <button id="setStatusBtn" class="btn btn-outline-success"> В планы</button>
-                    </div>
-
-                    <!-- Оценка -->
-                    <div class="mt-4">
-                        <h6>Ваша оценка:</h6>
-                        <div class="rating-stars" id="ratingStars">
-                            <span class="star" data-rating="1">★</span>
-                            <span class="star" data-rating="2">★</span>
-                            <span class="star" data-rating="3">★</span>
-                            <span class="star" data-rating="4">★</span>
-                            <span class="star" data-rating="5">★</span>
-                            <span class="star" data-rating="6">★</span>
-                            <span class="star" data-rating="7">★</span>
-                            <span class="star" data-rating="8">★</span>
-                            <span class="star" data-rating="9">★</span>
-                            <span class="star" data-rating="10">★</span>
-                        </div>
-                        <small class="text-muted" id="ratingText">Не оценено</small>
-                    </div>
+            <aside class="book-sidebar">
+                <div class="book-cover-wrapper">
+                    <img id="bookCover" src="" alt="Обложка книги" class="book-cover-large"
+                         onerror="this.src='data:image/svg+xml;charset=UTF-8,' + encodeURIComponent('<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'350\' height=\'525\' viewBox=\'0 0 350 525\'><rect fill=\'%232a2a2a\' width=\'350\' height=\'525\'/><text fill=\'%23707070\' font-family=\'Arial\' font-size=\'16\' x=\'50%25\' y=\'50%25\' text-anchor=\'middle\' dy=\'.3em\'>Нет обложки</text></svg>')">
                 </div>
-            </div>
+                
+                <!-- Кнопки действий -->
+                <div class="action-buttons">
+                    <button id="startReadingBtn" class="btn-action btn-action-primary">Начать чтение</button>
+                    <button id="addToFavoritesBtn" class="btn-action btn-action-outline">В избранное</button>
+                    <button id="setStatusBtn" class="btn-action btn-action-outline">В планы</button>
+                </div>
+
+                <!-- Оценка -->
+                <div class="rating-section">
+                    <div class="rating-label">Ваша оценка</div>
+                    <div class="rating-stars" id="ratingStars">
+                        <span class="star" data-rating="1">★</span>
+                        <span class="star" data-rating="2">★</span>
+                        <span class="star" data-rating="3">★</span>
+                        <span class="star" data-rating="4">★</span>
+                        <span class="star" data-rating="5">★</span>
+                        <span class="star" data-rating="6">★</span>
+                        <span class="star" data-rating="7">★</span>
+                        <span class="star" data-rating="8">★</span>
+                        <span class="star" data-rating="9">★</span>
+                        <span class="star" data-rating="10">★</span>
+                    </div>
+                    <div class="rating-text" id="ratingText">Не оценено</div>
+                </div>
+            </aside>
 
             <!-- Правая колонка: информация и главы -->
-            <div class="col-md-8">
-                <div class="book-info mb-4">
-                    <h1 id="bookTitle">Загрузка...</h1>
-                    <h4 class="text-muted mb-3" id="bookAuthor">Автор...</h4>
+            <main class="book-main-content">
+                
+                <!-- Заголовок книги -->
+                <div class="book-header">
+                    <h1 id="bookTitle" class="book-title-large">Загрузка...</h1>
+                    <p id="bookAuthor" class="book-author-large">Автор...</p>
+                    <div id="bookGenres" class="book-genres"></div>
                     
-                    <div class="mb-3" id="bookGenres"></div>
-
-                    <div class="row mb-3">
-                        <div class="col-6">
-                            <strong>Год издания:</strong> <span id="bookYear">—</span>
+                    <div class="book-meta-grid">
+                        <div class="meta-item">
+                            <div class="meta-label">Год издания</div>
+                            <div class="meta-value" id="bookYear">—</div>
                         </div>
-                        <div class="col-6">
-                            <strong>Издательство:</strong> <span id="bookPublisher">—</span>
+                        <div class="meta-item">
+                            <div class="meta-label">Издательство</div>
+                            <div class="meta-value" id="bookPublisher">—</div>
                         </div>
                     </div>
+                </div>
 
-                    <hr>
-                    
-                    <h5>Описание:</h5>
-                    <p id="bookDescription" class="text-muted">Описание загружается...</p>
+                <!-- Описание -->
+                <div class="book-description-section">
+                    <h2 class="section-title">Описание</h2>
+                    <p id="bookDescription" class="book-description-text">Описание загружается...</p>
                 </div>
 
                 <!-- Список глав -->
-                <div class="chapter-list">
-                    <h4 class="mb-3">📑 Главы</h4>
+                <div class="chapters-section">
+                    <div class="chapters-header">
+                        <h2 class="section-title">Главы</h2>
+                        <span class="chapters-count" id="chaptersCount"></span>
+                    </div>
                     <div id="chaptersContainer">
                         <div class="text-center py-3">
                             <div class="spinner-border text-primary" role="status">
@@ -99,7 +545,8 @@
                         </div>
                     </div>
                 </div>
-            </div>
+
+            </main>
         </div>
     </div>
 

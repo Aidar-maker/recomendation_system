@@ -9,28 +9,27 @@ document.addEventListener('DOMContentLoaded', async () => {
     let allGenres = [];
     let currentSubmissionsTab = 'books';
 
-    // === ЗАГРУЗКА ДАННЫХ ===
+    // === ЗАГРУЗКА ЖАНРОВ ===
     async function loadGenres() {
         try {
             allGenres = await apiRequest('/genres');
             const container = document.getElementById('bookGenresContainer');
             
-            container.innerHTML = allGenres.map(genre => `
-                <div class="col-md-4 col-lg-3">
-                    <div class="form-check">
-                        <input class="form-check-input genre-checkbox" type="checkbox" 
+            if (container) {
+                container.innerHTML = allGenres.map(genre => `
+                    <label class="genre-checkbox">
+                        <input type="checkbox" class="genre-checkbox-input" 
                                value="${genre.genre_id}" id="genre_${genre.genre_id}">
-                        <label class="form-check-label" for="genre_${genre.genre_id}">
-                            ${genre.genre_name}
-                        </label>
-                    </div>
-                </div>
-            `).join('');
+                        <span>${genre.genre_name}</span>
+                    </label>
+                `).join('');
+            }
         } catch (e) {
             console.error('Ошибка загрузки жанров:', e);
         }
     }
 
+    // === ЗАГРУЗКА КНИГ ===
     async function loadBooks() {
         try {
             const user = await userAPI.getMe();
@@ -44,6 +43,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             
             const select = document.getElementById('selectBook');
             
+            if (!select) return;
+            
             if (allBooks.length === 0) {
                 select.innerHTML = '<option value="">У вас нет книг</option>';
                 return;
@@ -51,10 +52,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             
             select.innerHTML = '<option value="">Выберите книгу...</option>' +
                 allBooks.map(book => `
-                    <option value="${book.book_id}">${book.title} (${book.author})</option>
+                    <option value="${book.book_id}">${escapeHtml(book.title)} (${escapeHtml(book.author)})</option>
                 `).join('');
                 
-            // Добавляем обработчик для показа глав
             select.addEventListener('change', async () => {
                 const bookId = parseInt(select.value);
                 await loadExistingChapters(bookId);
@@ -66,7 +66,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
 
-    // Загрузка существующих глав
+    // === ЗАГРУЗКА СУЩЕСТВУЮЩИХ ГЛАВ ===
     async function loadExistingChapters(bookId) {
         const chaptersBlock = document.getElementById('existingChaptersBlock');
         const chaptersList = document.getElementById('existingChaptersList');
@@ -81,46 +81,47 @@ document.addEventListener('DOMContentLoaded', async () => {
             const chapters = book.chapters || [];
             
             if (chapters.length === 0) {
-                chaptersList.innerHTML = '<p class="text-muted mb-0">📖 В книге пока нет глав</p>';
+                chaptersList.innerHTML = '<div class="empty-chapters">В книге пока нет глав</div>';
                 chaptersBlock.style.display = 'block';
                 return;
             }
             
-            // Сортируем главы по номеру
             chapters.sort((a, b) => parseFloat(a.order_number) - parseFloat(b.order_number));
             
-            let html = '<ul class="list-unstyled mb-0">';
+            let html = '<ul class="chapters-list">';
             chapters.forEach(chapter => {
                 const orderNum = parseFloat(chapter.order_number);
                 const displayNum = orderNum == Math.floor(orderNum) ? Math.floor(orderNum) + 1 : orderNum;
                 
                 html += `
-                    <li class="d-flex justify-content-between align-items-center py-2 border-bottom">
-                        <span><b>Глава ${displayNum}:</b> ${chapter.title}</span>
-                        <span class="badge bg-secondary">№ ${chapter.order_number}</span>
+                    <li class="chapter-item">
+                        <span class="chapter-item-name"><b>Глава ${displayNum}:</b> ${escapeHtml(chapter.title)}</span>
+                        <span class="chapter-item-number">№ ${chapter.order_number}</span>
                     </li>
                 `;
             });
             html += '</ul>';
             
-            // Показываем рекомендуемый номер для новой главы
             const maxOrder = Math.max(...chapters.map(c => parseFloat(c.order_number)));
             const nextOrder = maxOrder + 1;
             
-            html += `<div class="mt-2 p-2 bg-white rounded">
-                <small>💡 <b>Рекомендуемый номер для новой главы:</b> <code>${nextOrder}</code></small>
-            </div>`;
+            html += `
+                <div class="recommendation-box">
+                    Рекомендуемый номер для новой главы: <code>${nextOrder}</code>
+                </div>
+            `;
             
             chaptersList.innerHTML = html;
             chaptersBlock.style.display = 'block';
             
         } catch (e) {
             console.error('Ошибка загрузки глав:', e);
-            chaptersList.innerHTML = '<p class="text-danger mb-0">Ошибка загрузки глав</p>';
+            chaptersList.innerHTML = '<div class="empty-chapters" style="color: var(--danger);">Ошибка загрузки глав</div>';
             chaptersBlock.style.display = 'block';
         }
     }
 
+    // === ЗАГРУЗКА МОИХ ЗАЯВОК ===
     async function loadMySubmissions() {
         const container = document.getElementById('mySubmissionsContent');
         
@@ -133,42 +134,44 @@ document.addEventListener('DOMContentLoaded', async () => {
                 renderSubmissions(container, submissions, 'chapter');
             }
         } catch (e) {
-            container.innerHTML = '<p class="text-danger">Ошибка загрузки</p>';
+            container.innerHTML = '<div class="empty-state">Ошибка загрузки</div>';
         }
     }
 
     function renderSubmissions(container, submissions, type) {
         if (submissions.length === 0) {
-            container.innerHTML = '<p class="text-muted">У вас пока нет заявок</p>';
+            container.innerHTML = '<div class="empty-state">У вас пока нет заявок</div>';
             return;
         }
 
-        const statusConfig = {
-            'pending': { color: 'warning', text: '⏳ На рассмотрении' },
-            'approved': { color: 'success', text: '✅ Одобрено' },
-            'rejected': { color: 'danger', text: '❌ Отклонено' }
-        };
+        function getStatusText(status) {
+            const map = {
+                'pending': 'На рассмотрении',
+                'approved': 'Одобрено',
+                'rejected': 'Отклонено'
+            };
+            return map[status] || status;
+        }
 
         container.innerHTML = submissions.map(sub => {
-            const status = statusConfig[sub.status] || statusConfig['pending'];
-            const title = type === 'book' ? sub.title : `${sub.book_title} - ${sub.chapter_title}`;
+            const title = type === 'book' 
+                ? escapeHtml(sub.title) 
+                : `${escapeHtml(sub.book_title)} — ${escapeHtml(sub.chapter_title)}`;
             
             return `
-                <div class="border-bottom pb-3 mb-3">
-                    <div class="d-flex justify-content-between align-items-start">
-                        <div>
-                            <h6 class="mb-1">${title}</h6>
-                            <span class="badge bg-${status.color}">${status.text}</span>
-                            ${sub.admin_note ? `
-                                <div class="mt-2 p-2 bg-light rounded">
-                                    <small><b>Комментарий админа:</b> ${sub.admin_note}</small>
-                                </div>
-                            ` : ''}
-                            <small class="text-muted d-block mt-1">
-                                ${new Date(sub.created_at).toLocaleDateString('ru-RU')}
-                            </small>
+                <div class="submission-item">
+                    <h6 class="submission-title">${title}</h6>
+                    <span class="status-badge status-${sub.status}">${getStatusText(sub.status)}</span>
+                    ${sub.admin_note ? `
+                        <div class="submission-note">
+                            <b>Комментарий админа:</b> ${escapeHtml(sub.admin_note)}
                         </div>
-                    </div>
+                    ` : ''}
+                    ${sub.created_at ? `
+                        <span class="submission-date">
+                            ${new Date(sub.created_at).toLocaleDateString('ru-RU')}
+                        </span>
+                    ` : ''}
                 </div>
             `;
         }).join('');
@@ -181,7 +184,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             e.preventDefault();
 
             const selectedGenres = [];
-            document.querySelectorAll('.genre-checkbox:checked').forEach(cb => {
+            document.querySelectorAll('.genre-checkbox-input:checked').forEach(cb => {
                 selectedGenres.push(parseInt(cb.value));
             });
 
@@ -196,8 +199,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             };
 
             const submitBtn = bookForm.querySelector('button[type="submit"]');
+            const originalText = submitBtn.innerHTML;
             submitBtn.disabled = true;
-            submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Отправка...';
+            submitBtn.innerHTML = 'Отправка...';
 
             try {
                 await apiRequest('/submissions/books', {
@@ -212,7 +216,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 showToast(`Ошибка: ${error.message}`, 'error');
             } finally {
                 submitBtn.disabled = false;
-                submitBtn.innerHTML = '📤 Отправить заявку';
+                submitBtn.innerHTML = originalText;
             }
         });
     }
@@ -227,12 +231,13 @@ document.addEventListener('DOMContentLoaded', async () => {
                 book_id: parseInt(document.getElementById('selectBook').value),
                 chapter_title: document.getElementById('chapterTitle').value,
                 chapter_content: document.getElementById('chapterContent').value,
-                order_number: parseInt(document.getElementById('chapterOrder').value)
+                order_number: parseFloat(document.getElementById('chapterOrder').value)
             };
 
             const submitBtn = chapterForm.querySelector('button[type="submit"]');
+            const originalText = submitBtn.innerHTML;
             submitBtn.disabled = true;
-            submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Отправка...';
+            submitBtn.innerHTML = 'Отправка...';
 
             try {
                 await apiRequest('/submissions/chapters', {
@@ -247,18 +252,16 @@ document.addEventListener('DOMContentLoaded', async () => {
                 showToast(`Ошибка: ${error.message}`, 'error');
             } finally {
                 submitBtn.disabled = false;
-                submitBtn.innerHTML = '📤 Отправить заявку';
+                submitBtn.innerHTML = originalText;
             }
         });
     }
-
 
     // === РЕДАКТИРОВАНИЕ ГЛАВЫ ===
     const editChapterForm = document.getElementById('editChapterSubmissionForm');
     const editSelectBook = document.getElementById('editSelectBook');
     const editSelectChapter = document.getElementById('editSelectChapter');
     
-    // Загрузка книг для редактирования
     async function loadBooksForEdit() {
         if (!editSelectBook) return;
         
@@ -280,7 +283,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             
             editSelectBook.innerHTML = '<option value="">Выберите книгу...</option>' +
                 books.map(book => `
-                    <option value="${book.book_id}">${book.title} (${book.author})</option>
+                    <option value="${book.book_id}">${escapeHtml(book.title)} (${escapeHtml(book.author)})</option>
                 `).join('');
                 
         } catch (e) {
@@ -289,10 +292,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
     
-    // Вызываем загрузку
     loadBooksForEdit();
     
-    // Обработчик выбора книги
     if (editSelectBook) {
         editSelectBook.addEventListener('change', async () => {
             const bookId = parseInt(editSelectBook.value);
@@ -316,9 +317,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                         const displayNum = orderNum == Math.floor(orderNum) ? Math.floor(orderNum) + 1 : orderNum;
                         
                         return `<option value="${ch.chapter_id}" 
-                                data-title="${ch.title}" 
+                                data-title="${escapeHtml(ch.title)}" 
                                 data-order="${ch.order_number}">
-                            Глава ${displayNum}: ${ch.title}
+                            Глава ${displayNum}: ${escapeHtml(ch.title)}
                         </option>`;
                     }).join('');
                     
@@ -328,7 +329,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     }
     
-    // Автозаполнение полей при выборе главы
     if (editSelectChapter) {
         editSelectChapter.addEventListener('change', () => {
             const selectedOption = editSelectChapter.options[editSelectChapter.selectedIndex];
@@ -339,7 +339,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     }
     
-    // Отправка формы
     if (editChapterForm) {
         editChapterForm.addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -354,8 +353,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             };
             
             const submitBtn = editChapterForm.querySelector('button[type="submit"]');
+            const originalText = submitBtn.innerHTML;
             submitBtn.disabled = true;
-            submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Отправка...';
+            submitBtn.innerHTML = 'Отправка...';
             
             try {
                 await apiRequest('/submissions/chapters', {
@@ -370,20 +370,38 @@ document.addEventListener('DOMContentLoaded', async () => {
                 showToast(`Ошибка: ${error.message}`, 'error');
             } finally {
                 submitBtn.disabled = false;
-                submitBtn.innerHTML = '📤 Отправить заявку на редактирование';
+                submitBtn.innerHTML = originalText;
             }
         });
     }
 
     // === ПЕРЕКЛЮЧЕНИЕ МОИХ ЗАЯВОК ===
-    document.querySelectorAll('#mySubmissionsTabs .nav-link').forEach(btn => {
+    document.querySelectorAll('.pill-btn[data-tab]').forEach(btn => {
         btn.addEventListener('click', () => {
-            document.querySelectorAll('#mySubmissionsTabs .nav-link').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.pill-btn[data-tab]').forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
             currentSubmissionsTab = btn.dataset.tab;
             loadMySubmissions();
         });
     });
+
+    // === ВЫХОД ===
+    const logoutBtn = document.getElementById('logout-btn');
+    if (logoutBtn) {
+        logoutBtn.addEventListener('click', () => {
+            localStorage.removeItem('accessToken');
+            localStorage.removeItem('userEmail');
+            window.location.href = 'index.html';
+        });
+    }
+
+    // === ЭКРАНИРОВАНИЕ HTML ===
+    function escapeHtml(text) {
+        if (!text) return '';
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
 
     // === ИНИЦИАЛИЗАЦИЯ ===
     await Promise.all([loadGenres(), loadBooks()]);

@@ -3,188 +3,672 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Книжный Советник - Подать заявку</title>
+    <title>Book Mania - Подать заявку</title>
+    <script>
+        (function() {
+            const saved = localStorage.getItem('siteTheme') || 'dark';
+            document.documentElement.setAttribute('data-theme', saved);
+        })();
+    </script>
+    
+    <link rel="stylesheet" href="styles/variables.css">
+    <link rel="stylesheet" href="styles/global.css">
+    <link rel="stylesheet" href="styles/components.css">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    
     <style>
-        body { background-color: #f8f9fa; }
+        body {
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+        }
+
+        /* ===== NAVBAR ===== */
+        .navbar {
+            background-color: var(--bg-secondary);
+            border-bottom: 1px solid var(--border-color);
+            padding: 1rem 0;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .navbar-container {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 2rem;
+        }
+
+        .navbar-brand {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            text-decoration: none;
+        }
+
+        .navbar-brand .accent {
+            color: var(--accent-primary);
+        }
+
+        .navbar-nav {
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            gap: 0.5rem;
+            list-style: none;
+            margin: 0;
+            padding: 0;
+        }
+
+        .navbar-nav li {
+            display: inline-block;
+        }
+
+        .nav-link {
+            color: var(--text-secondary);
+            font-weight: 500;
+            padding: 0.5rem 1rem;
+            border-radius: var(--radius-md);
+            transition: all 0.2s;
+            text-decoration: none;
+            font-size: 0.9rem;
+            display: inline-block;
+        }
+
+        .nav-link:hover,
+        .nav-link.active {
+            color: var(--text-primary);
+            background-color: var(--bg-hover);
+        }
+
+        .nav-link.admin-only {
+            color: var(--accent-primary);
+        }
+
+        .navbar-actions {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .user-email {
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+        }
+
+        .btn-logout {
+            background: transparent;
+            border: 1px solid var(--border-color);
+            color: var(--text-secondary);
+            padding: 0.4rem 1rem;
+            border-radius: var(--radius-md);
+            cursor: pointer;
+            font-size: 0.875rem;
+            transition: all 0.2s;
+        }
+
+        .btn-logout:hover {
+            background: var(--bg-hover);
+            color: var(--danger);
+            border-color: var(--danger);
+        }
+
+        /* ===== TABS ===== */
+        .submit-tabs {
+            display: flex;
+            gap: 0.5rem;
+            border-bottom: 1px solid var(--border-color);
+            margin-bottom: 2rem;
+            overflow-x: auto;
+            flex-wrap: wrap;
+        }
+
+        .submit-tab {
+            padding: 0.875rem 1.5rem;
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            font-weight: 500;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s;
+            white-space: nowrap;
+            font-size: 0.95rem;
+        }
+
+        .submit-tab:hover {
+            color: var(--text-primary);
+        }
+
+        .submit-tab.active {
+            color: var(--accent-primary);
+            border-bottom-color: var(--accent-primary);
+        }
+
+        /* ===== CARD ===== */
         .submit-card {
-            background: white;
-            border-radius: 10px;
-            padding: 30px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-            margin-bottom: 30px;
+            background-color: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            padding: 2rem;
+        }
+
+        .card-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin: 0 0 1.5rem 0;
+        }
+
+        /* ===== FORMS ===== */
+        .form-label {
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+            display: block;
+        }
+
+        .form-control,
+        .form-select {
+            background-color: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            padding: 0.75rem 1rem;
+            border-radius: var(--radius-md);
+            font-size: 0.95rem;
+            transition: all 0.2s;
+            width: 100%;
+        }
+
+        .form-control:focus,
+        .form-select:focus {
+            outline: none;
+            border-color: var(--accent-primary);
+            background-color: var(--bg-secondary);
+            box-shadow: 0 0 0 3px rgba(255, 107, 53, 0.1);
+        }
+
+        .form-control::placeholder {
+            color: var(--text-muted);
+        }
+
+        .form-text {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-top: 0.25rem;
+        }
+
+        textarea.form-control {
+            font-family: 'Courier New', monospace;
+            resize: vertical;
+        }
+
+        .form-select {
+            appearance: none;
+            background-image: url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23b0b0b0' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 1rem center;
+            padding-right: 2.5rem;
+            cursor: pointer;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+
+        /* Genres checkboxes */
+        .genres-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 0.5rem;
+            margin-top: 0.5rem;
+        }
+
+        .genre-checkbox {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 0.75rem;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+        }
+
+        .genre-checkbox:hover {
+            background: var(--bg-hover);
+            color: var(--text-primary);
+        }
+
+        .genre-checkbox input[type="checkbox"] {
+            accent-color: var(--accent-primary);
+        }
+
+        /* Buttons */
+        .btn-submit {
+            background-color: var(--accent-primary);
+            color: white;
+            border: none;
+            padding: 0.875rem 2rem;
+            border-radius: var(--radius-md);
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-top: 1rem;
+        }
+
+        .btn-submit:hover:not(:disabled) {
+            background-color: var(--accent-hover);
+            transform: translateY(-1px);
+        }
+
+        .btn-submit:disabled {
+            background-color: var(--bg-hover);
+            color: var(--text-muted);
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-submit-warning {
+            background-color: var(--warning);
+            color: var(--bg-primary);
+        }
+
+        .btn-submit-warning:hover:not(:disabled) {
+            background-color: #ffb74d;
+        }
+
+        /* ===== EXISTING CHAPTERS ===== */
+        .existing-chapters-block {
+            background-color: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            padding: 1.25rem;
+            margin-bottom: 1.25rem;
+        }
+
+        .existing-chapters-label {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            font-weight: 500;
+            margin-bottom: 0.75rem;
+        }
+
+        .chapters-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .chapter-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem 0;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .chapter-item:last-child {
+            border-bottom: none;
+        }
+
+        .chapter-item-name {
+            color: var(--text-primary);
+            font-size: 0.9rem;
+        }
+
+        .chapter-item-name b {
+            color: var(--accent-primary);
+        }
+
+        .chapter-item-number {
+            background-color: var(--bg-hover);
+            color: var(--text-secondary);
+            padding: 0.2rem 0.6rem;
+            border-radius: var(--radius-sm);
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+
+        .recommendation-box {
+            margin-top: 1rem;
+            padding: 0.75rem 1rem;
+            background-color: var(--bg-primary);
+            border-left: 3px solid var(--accent-primary);
+            border-radius: var(--radius-sm);
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        .recommendation-box code {
+            color: var(--accent-primary);
+            background-color: var(--bg-hover);
+            padding: 0.1rem 0.4rem;
+            border-radius: var(--radius-sm);
+            font-weight: 600;
+        }
+
+        .empty-chapters {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            text-align: center;
+            padding: 1rem;
+        }
+
+        /* ===== MY SUBMISSIONS ===== */
+        .pills-group {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .pill-btn {
+            padding: 0.5rem 1.25rem;
+            background: transparent;
+            border: 1px solid var(--border-color);
+            color: var(--text-secondary);
+            border-radius: 50px;
+            cursor: pointer;
+            font-size: 0.875rem;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+        .pill-btn:hover {
+            background: var(--bg-hover);
+            color: var(--text-primary);
+        }
+
+        .pill-btn.active {
+            background: var(--accent-primary);
+            color: white;
+            border-color: var(--accent-primary);
+        }
+
+        .submission-item {
+            background-color: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            padding: 1.25rem 1.5rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .submission-title {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin: 0 0 0.5rem 0;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: var(--radius-sm);
+            font-size: 0.75rem;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        .status-pending {
+            background-color: var(--warning);
+            color: var(--bg-primary);
+        }
+
+        .status-approved {
+            background-color: var(--success);
+            color: white;
+        }
+
+        .status-rejected {
+            background-color: var(--danger);
+            color: white;
+        }
+
+        .submission-note {
+            margin-top: 0.75rem;
+            padding: 0.75rem 1rem;
+            background-color: var(--bg-primary);
+            border-left: 3px solid var(--accent-primary);
+            border-radius: var(--radius-sm);
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        .submission-date {
+            display: block;
+            margin-top: 0.5rem;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 3rem 2rem;
+            color: var(--text-muted);
+        }
+
+        /* ===== RESPONSIVE ===== */
+        @media (max-width: 768px) {
+            .navbar-container {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .navbar-nav {
+                flex-wrap: wrap;
+                margin-top: 1rem;
+                padding-top: 1rem;
+                border-top: 1px solid var(--border-color);
+            }
+
+            .form-row {
+                grid-template-columns: 1fr;
+            }
         }
     </style>
 </head>
 <body>
 
-    <nav class="navbar navbar-dark bg-dark mb-4">
+    <!-- Навигация -->
+    <nav class="navbar">
         <div class="container">
-            <a class="navbar-brand" href="index.html">📚 Книжный Советник</a>
-            <div class="d-flex">
-                <a href="catalog.html" class="btn btn-outline-light me-2">📖 Каталог</a>
-                <a href="dashboard.html" class="btn btn-outline-light me-2">📚 Моя библиотека</a>
-                <button class="btn btn-outline-danger" id="logout-btn">Выйти</button>
+            <div class="navbar-container">
+                <a class="navbar-brand" href="dashboard.html">
+                    Book<span class="accent">Mania</span>
+                </a>
+                
+                <ul class="navbar-nav">
+                    <li><a href="dashboard.html" class="nav-link">Главная</a></li>
+                    <li><a href="catalog.html" class="nav-link">Каталог</a></li>
+                    <li><a href="submit_content.html" class="nav-link active">Подать заявку</a></li>
+                    <li><a href="request_moderation.html" class="nav-link">Запросы</a></li>
+                    <li><a href="admin.html" class="nav-link admin-only">Админка</a></li>
+                </ul>
+                
+                <div class="navbar-actions">
+                    <span class="user-email" id="user-email">Загрузка...</span>
+                    <button class="btn-logout" id="logout-btn">Выйти</button>
+                </div>
             </div>
         </div>
     </nav>
 
-    <div class="container">
-        <ul class="nav nav-tabs mb-4" id="submitTabs" role="tablist">
-            <li class="nav-item" role="presentation">
-                <button class="nav-link active" id="book-tab" data-bs-toggle="tab" data-bs-target="#book-pane" type="button">📕 Новая книга</button>
-            </li>
-            <li class="nav-item" role="presentation">
-                <button class="nav-link" id="chapter-tab" data-bs-toggle="tab" data-bs-target="#chapter-pane" type="button">📄 Добавить главу</button>
-            </li>
-            <li class="nav-item" role="presentation">
-                <button class="nav-link" id="my-submissions-tab" data-bs-toggle="tab" data-bs-target="#my-submissions-pane" type="button">📋 Мои заявки</button>
-            </li>
-            <li class="nav-item" role="presentation">
-                <button class="nav-link" id="edit-chapter-tab" data-bs-toggle="tab" data-bs-target="#edit-chapter-pane" type="button">✏️ Редактировать главу</button>
-            </li>
-        </ul>
+    <!-- Основной контент -->
+    <div class="container" style="padding: 2rem 1rem;">
+        
+        <!-- Вкладки -->
+        <div class="submit-tabs" id="submitTabs" role="tablist">
+            <button class="submit-tab active" id="book-tab" data-bs-toggle="tab" data-bs-target="#book-pane" type="button" role="tab">
+                Новая книга
+            </button>
+            <button class="submit-tab" id="chapter-tab" data-bs-toggle="tab" data-bs-target="#chapter-pane" type="button" role="tab">
+                Добавить главу
+            </button>
+            <button class="submit-tab" id="edit-chapter-tab" data-bs-toggle="tab" data-bs-target="#edit-chapter-pane" type="button" role="tab">
+                Редактировать главу
+            </button>
+            <button class="submit-tab" id="my-submissions-tab" data-bs-toggle="tab" data-bs-target="#my-submissions-pane" type="button" role="tab">
+                Мои заявки
+            </button>
+        </div>
 
+        <!-- Содержимое вкладок -->
         <div class="tab-content" id="submitTabsContent">
             
             <!-- 1. Новая книга -->
-            <div class="tab-pane fade show active" id="book-pane">
+            <div class="tab-pane fade show active" id="book-pane" role="tabpanel">
                 <div class="submit-card">
-                    <h4 class="mb-4">📕 Подать заявку на создание книги</h4>
+                    <h2 class="card-title">Подать заявку на создание книги</h2>
                     <form id="bookSubmissionForm">
-                        <div class="mb-3">
+                        <div style="margin-bottom: 1.25rem;">
                             <label for="bookTitle" class="form-label">Название книги *</label>
                             <input type="text" class="form-control" id="bookTitle" required>
                         </div>
-                        <div class="mb-3">
+                        <div style="margin-bottom: 1.25rem;">
                             <label for="bookAuthor" class="form-label">Автор *</label>
                             <input type="text" class="form-control" id="bookAuthor" required>
                         </div>
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
+                        <div class="form-row" style="margin-bottom: 1.25rem;">
+                            <div>
                                 <label for="bookYear" class="form-label">Год издания</label>
                                 <input type="number" class="form-control" id="bookYear">
                             </div>
-                            <div class="col-md-6 mb-3">
+                            <div>
                                 <label for="bookPublisher" class="form-label">Издательство</label>
                                 <input type="text" class="form-control" id="bookPublisher">
                             </div>
                         </div>
-                        <div class="mb-3">
+                        <div style="margin-bottom: 1.25rem;">
                             <label for="bookImageUrl" class="form-label">URL обложки</label>
-                            <input type="url" class="form-control" id="bookImageUrl">
+                            <input type="url" class="form-control" id="bookImageUrl" placeholder="https://example.com/cover.jpg">
                         </div>
-                        <div class="mb-3">
+                        <div style="margin-bottom: 1.25rem;">
                             <label for="bookDescription" class="form-label">Описание</label>
-                            <textarea class="form-control" id="bookDescription" rows="4"></textarea>
+                            <textarea class="form-control" id="bookDescription" rows="4" style="font-family: inherit;"></textarea>
                         </div>
-                        <div class="mb-3">
+                        <div style="margin-bottom: 1.5rem;">
                             <label class="form-label">Жанры</label>
-                            <div id="bookGenresContainer" class="row g-2">
-                                <div class="col-12 text-center">
-                                    <div class="spinner-border spinner-border-sm text-primary"></div>
+                            <div id="bookGenresContainer" class="genres-grid">
+                                <div style="grid-column: 1 / -1; text-align: center; color: var(--text-muted);">
+                                    Загрузка жанров...
                                 </div>
                             </div>
+                            <div class="form-text">Можно выбрать несколько жанров</div>
                         </div>
-                        <button type="submit" class="btn btn-primary btn-lg">📤 Отправить заявку</button>
+                        <button type="submit" class="btn-submit">Отправить заявку</button>
                     </form>
                 </div>
             </div>
 
             <!-- 2. Добавить главу -->
-            <div class="tab-pane fade" id="chapter-pane">
+            <div class="tab-pane fade" id="chapter-pane" role="tabpanel">
                 <div class="submit-card">
-                    <h4 class="mb-4">📄 Подать заявку на добавление главы</h4>
+                    <h2 class="card-title">Подать заявку на добавление главы</h2>
                     <form id="chapterSubmissionForm">
-                        <div class="mb-3">
+                        <div style="margin-bottom: 1.25rem;">
                             <label for="selectBook" class="form-label">Выберите книгу *</label>
                             <select class="form-select" id="selectBook" required>
                                 <option value="">Загрузка...</option>
                             </select>
                         </div>
-                        <div class="mb-3" id="existingChaptersBlock" style="display: none;">
-                            <label class="form-label">📋 Существующие главы в книге:</label>
-                            <div class="border rounded p-3 bg-light" id="existingChaptersList">
+                        
+                        <!-- Существующие главы -->
+                        <div class="existing-chapters-block" id="existingChaptersBlock" style="display: none;">
+                            <div class="existing-chapters-label">Существующие главы в книге:</div>
+                            <div id="existingChaptersList">
                                 <!-- Сюда JavaScript вставит список глав -->
                             </div>
                             <div class="form-text">Это поможет правильно выбрать номер для новой главы</div>
                         </div>
-                        <div class="mb-3">
+
+                        <div style="margin-bottom: 1.25rem;">
                             <label for="chapterTitle" class="form-label">Название главы *</label>
-                            <input type="text" class="form-control" id="chapterTitle" required>
+                            <input type="text" class="form-control" id="chapterTitle" placeholder="Например: Пролог" required>
                         </div>
-                        <div class="mb-3">
+                        <div style="margin-bottom: 1.25rem;">
                             <label for="chapterOrder" class="form-label">Номер главы *</label>
-                            <input type="number" class="form-control" id="chapterOrder" value="0" min="0" required>
+                            <input type="number" class="form-control" id="chapterOrder" value="0" step="0.1" min="0" required>
+                            <div class="form-text">Можно использовать дробные числа: 0, 0.5, 1, 1.5 и т.д.</div>
                         </div>
-                        <div class="mb-3">
+                        <div style="margin-bottom: 1.5rem;">
                             <label for="chapterContent" class="form-label">Содержание (HTML) *</label>
-                            <textarea class="form-control" id="chapterContent" rows="10" required></textarea>
+                            <textarea class="form-control" id="chapterContent" rows="10" placeholder="<h1>Глава 1</h1><p>Текст главы...</p>" required></textarea>
                             <div class="form-text">Используйте HTML-теги: &lt;p&gt;, &lt;h1&gt;, &lt;b&gt; и т.д.</div>
                         </div>
-                        <button type="submit" class="btn btn-success btn-lg">📤 Отправить заявку</button>
+                        <button type="submit" class="btn-submit">Отправить заявку</button>
                     </form>
                 </div>
             </div>
 
-            <!-- 3. Мои заявки -->
-            <div class="tab-pane fade" id="my-submissions-pane">
+            <!-- 3. Редактировать главу -->
+            <div class="tab-pane fade" id="edit-chapter-pane" role="tabpanel">
                 <div class="submit-card">
-                    <h4 class="mb-4">📋 Мои заявки</h4>
-                    <ul class="nav nav-pills mb-3" id="mySubmissionsTabs">
-                        <li class="nav-item">
-                            <button class="nav-link active" data-tab="books">Книги</button>
-                        </li>
-                        <li class="nav-item">
-                            <button class="nav-link" data-tab="chapters">Главы</button>
-                        </li>
-                    </ul>
-                    <div id="mySubmissionsContent">
-                        <div class="text-center py-5">
-                            <div class="spinner-border text-primary"></div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="tab-pane fade" id="edit-chapter-pane">
-                <div class="submit-card">
-                    <h4 class="mb-4">✏️ Подать заявку на редактирование главы</h4>
+                    <h2 class="card-title">Подать заявку на редактирование главы</h2>
                     <form id="editChapterSubmissionForm">
-                        <div class="mb-3">
+                        <div style="margin-bottom: 1.25rem;">
                             <label for="editSelectBook" class="form-label">Выберите книгу *</label>
                             <select class="form-select" id="editSelectBook" required>
                                 <option value="">Загрузка...</option>
                             </select>
                         </div>
-                        <div class="mb-3">
+                        <div style="margin-bottom: 1.25rem;">
                             <label for="editSelectChapter" class="form-label">Выберите главу *</label>
                             <select class="form-select" id="editSelectChapter" required>
                                 <option value="">Сначала выберите книгу</option>
                             </select>
                         </div>
-                        <div class="mb-3">
+                        <div style="margin-bottom: 1.25rem;">
                             <label for="editChapterTitle" class="form-label">Новое название главы *</label>
                             <input type="text" class="form-control" id="editChapterTitle" required>
                         </div>
-                        <div class="mb-3">
+                        <div style="margin-bottom: 1.25rem;">
                             <label for="editChapterOrder" class="form-label">Номер главы *</label>
-                            <input type="number" step="0.1" class="form-control" id="chapterOrder" value="0" min="0" required>
+                            <input type="number" step="0.1" class="form-control" id="editChapterOrder" value="0" min="0" required>
                             <div class="form-text">Можно использовать дробные числа: 1, 1.5, 2 и т.д.</div>
                         </div>
-                        <div class="mb-3">
+                        <div style="margin-bottom: 1.5rem;">
                             <label for="editChapterContent" class="form-label">Новое содержание (HTML) *</label>
                             <textarea class="form-control" id="editChapterContent" rows="10" required></textarea>
                         </div>
-                        <button type="submit" class="btn btn-warning btn-lg">📤 Отправить заявку на редактирование</button>
+                        <button type="submit" class="btn-submit btn-submit-warning">Отправить заявку на редактирование</button>
                     </form>
                 </div>
             </div>
+
+            <!-- 4. Мои заявки -->
+            <div class="tab-pane fade" id="my-submissions-pane" role="tabpanel">
+                <div class="submit-card">
+                    <h2 class="card-title">Мои заявки</h2>
+                    <div class="pills-group">
+                        <button class="pill-btn active" data-tab="books">Книги</button>
+                        <button class="pill-btn" data-tab="chapters">Главы</button>
+                    </div>
+                    <div id="mySubmissionsContent">
+                        <div style="text-align: center; padding: 3rem;">
+                            <div class="spinner-border text-primary" role="status"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
         </div>
     </div>
 
+    <!-- Скрипты -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="js/api.js"></script>
+    <script src="js/theme.js"></script>
     <script src="js/toast.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/auth-check.js"></script>
+    <script src="js/user.js"></script>
     <script src="js/submit_content.js"></script>
 
 </body>

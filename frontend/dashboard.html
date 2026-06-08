@@ -3,115 +3,598 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Книжный Советник - Личный кабинет</title>
+    <title>Book Mania - Личный кабинет</title>
 
     <script>
         (function() {
-            const saved = localStorage.getItem('siteTheme') || 'light';
+            const saved = localStorage.getItem('siteTheme') || 'dark';
             document.documentElement.setAttribute('data-theme', saved);
         })();
     </script>
     
-    <!-- Подключение Bootstrap 5 -->
+    <link rel="stylesheet" href="styles/variables.css">
+    <link rel="stylesheet" href="styles/global.css">
+    <link rel="stylesheet" href="styles/components.css">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="css/themes.css">
+    
     <style>
-        .card { transition: transform 0.2s; }
-        .card:hover { transform: translateY(-5px); }
-        .nav-link.active { font-weight: bold; }
+        body {
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+        }
+
+        /* ===== NAVBAR ===== */
+        .navbar {
+            background-color: var(--bg-secondary);
+            border-bottom: 1px solid var(--border-color);
+            padding: 1rem 0;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .navbar-container {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 2rem;
+        }
+
+        .navbar-brand {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .navbar-brand .accent {
+            color: var(--accent-primary);
+        }
+
+        .navbar-nav {
+            display: flex;
+            flex-direction: row;
+            align-items: flex-start;
+            gap: 0.25rem;
+            list-style: none;
+            margin: 0;
+            padding: 0;
+        }
+
+        .nav-link {
+            color: var(--text-secondary);
+            font-weight: 500;
+            padding: 0.4rem 0.75rem;
+            border-radius: var(--radius-md);
+            transition: all 0.2s;
+            text-decoration: none;
+            font-size: 0.9rem;
+        }
+
+        .nav-link:hover,
+        .nav-link.active {
+            color: var(--text-primary);
+            background-color: var(--bg-hover);
+        }
+
+        .nav-link.admin-only {
+            color: var(--accent-primary);
+        }
+
+        .navbar-actions {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .user-email {
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+        }
+
+        .btn-logout {
+            background: transparent;
+            border: 1px solid var(--border-color);
+            color: var(--text-secondary);
+            padding: 0.4rem 1rem;
+            border-radius: var(--radius-md);
+            cursor: pointer;
+            font-size: 0.875rem;
+            transition: all 0.2s;
+        }
+
+        .btn-logout:hover {
+            background: var(--bg-hover);
+            color: var(--danger);
+            border-color: var(--danger);
+        }
+
+        /* ===== CONTINUE READING ===== */
+        .continue-reading {
+            background-color: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            padding: 1.5rem 2rem;
+            margin-bottom: 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 2rem;
+        }
+
+        .continue-reading-label {
+            font-size: 0.75rem;
+            color: var(--accent-primary);
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+
+        .continue-reading-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 0.25rem;
+        }
+
+        .continue-reading-chapter {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+        }
+
+        .continue-reading-info {
+            flex: 1;
+        }
+
+        .btn-continue {
+            background-color: var(--accent-primary);
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: var(--radius-md);
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+
+        .btn-continue:hover {
+            background-color: var(--accent-hover);
+            transform: translateY(-1px);
+        }
+
+        /* ===== TABS ===== */
+        .page-tabs {
+            display: flex;
+            gap: 0.5rem;
+            border-bottom: 1px solid var(--border-color);
+            margin-bottom: 2rem;
+            overflow-x: auto;
+        }
+
+        .page-tab {
+            padding: 0.875rem 1.5rem;
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            font-weight: 500;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s;
+            white-space: nowrap;
+            font-size: 0.95rem;
+        }
+
+        .page-tab:hover {
+            color: var(--text-primary);
+        }
+
+        .page-tab.active {
+            color: var(--accent-primary);
+            border-bottom-color: var(--accent-primary);
+        }
+
+        /* ===== SECTIONS ===== */
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .section-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin: 0;
+        }
+
+        .btn-refresh {
+            background-color: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            color: var(--text-secondary);
+            padding: 0.5rem 1rem;
+            border-radius: var(--radius-md);
+            cursor: pointer;
+            font-size: 0.875rem;
+            transition: all 0.2s;
+        }
+
+        .btn-refresh:hover {
+            background-color: var(--bg-hover);
+            color: var(--text-primary);
+            border-color: var(--border-light);
+        }
+
+        /* ===== STATS CARDS ===== */
+        .stat-card {
+            background-color: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            padding: 1.5rem;
+            text-align: center;
+            transition: all 0.2s;
+            height: 100%;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-2px);
+            border-color: var(--border-light);
+        }
+
+        .stat-value {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            line-height: 1;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-label {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            margin: 0;
+        }
+
+        .stat-card.accent-primary .stat-value { color: var(--accent-primary); }
+        .stat-card.accent-success .stat-value { color: var(--success); }
+        .stat-card.accent-info .stat-value { color: var(--info); }
+        .stat-card.accent-warning .stat-value { color: var(--warning); }
+        .stat-card.accent-danger .stat-value { color: var(--danger); }
+        .stat-card.accent-secondary .stat-value { color: var(--accent-secondary); }
+
+        /* ===== BOOK CARDS ===== */
+        .book-card {
+            background-color: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            overflow: hidden;
+            transition: all 0.2s;
+            cursor: pointer;
+            height: 100%;
+        }
+
+        .book-card:hover {
+            transform: translateY(-4px);
+            border-color: var(--accent-primary);
+            box-shadow: var(--shadow-md);
+        }
+
+        .book-cover {
+            width: 100%;
+            aspect-ratio: 2/3;
+            object-fit: cover;
+            background-color: var(--bg-secondary);
+        }
+
+        .book-info {
+            padding: 1rem;
+        }
+
+        .book-title {
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin: 0 0 0.25rem 0;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .book-author {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            margin: 0 0 0.75rem 0;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .book-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .book-rating {
+            font-size: 0.8rem;
+            color: var(--warning);
+            font-weight: 600;
+        }
+
+        .book-btn {
+            background-color: var(--accent-primary);
+            color: white;
+            border: none;
+            padding: 0.35rem 0.75rem;
+            border-radius: var(--radius-sm);
+            font-size: 0.75rem;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .book-btn:hover {
+            background-color: var(--accent-hover);
+        }
+
+        /* ===== EMPTY STATE ===== */
+        .empty-state {
+            text-align: center;
+            padding: 4rem 2rem;
+            color: var(--text-muted);
+        }
+
+        .empty-state-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            opacity: 0.5;
+        }
+
+                /* ===== BOOK CARD BUTTONS ===== */
+        .book-actions {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+            margin-top: 1rem;
+        }
+
+        .book-cover {
+            width: 100%;
+            height: 280px;
+            object-fit: cover;
+            background-color: var(--bg-secondary);
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .book-action-btn {
+            flex: 1;
+            min-width: 100px;
+            padding: 0.5rem;
+            background: var(--accent-primary);
+            color: white;
+            border: none;
+            border-radius: var(--radius-sm);
+            font-size: 0.8rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .book-action-btn:hover {
+            background: var(--accent-hover);
+        }
+
+        .book-action-success {
+            background: var(--success);
+        }
+
+        .book-action-success:hover {
+            background: #45a049;
+        }
+
+        .book-action-danger {
+            background: var(--danger);
+        }
+
+        .book-action-danger:hover {
+            background: #d32f2f;
+        }
+
+        .book-status-select {
+            width: 100%;
+            padding: 0.5rem;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            border-radius: var(--radius-sm);
+            font-size: 0.8rem;
+            cursor: pointer;
+        }
+
+        .book-description {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            line-height: 1.5;
+            margin: 0.75rem 0;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .book-badges {
+            display: flex;
+            gap: 0.25rem;
+            flex-wrap: wrap;
+        }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.25rem 0.5rem;
+            border-radius: var(--radius-sm);
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+
+        /* ===== RESPONSIVE ===== */
+        @media (max-width: 768px) {
+            .navbar-container {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .navbar-nav {
+                display: flex;
+                flex-direction: row !important;
+                align-items: center;
+                gap: 0.5rem;
+                list-style: none;
+                margin: 0;
+                padding: 0;
+            }
+
+            .navbar-nav li {
+                display: inline-block;
+            }
+
+            .nav-link {
+                color: var(--text-secondary);
+                font-weight: 500;
+                padding: 0.5rem 1rem;
+                border-radius: var(--radius-md);
+                transition: all 0.2s;
+                text-decoration: none;
+                font-size: 0.9rem;
+                display: inline-block;
+            }
+
+            .nav-link:hover,
+            .nav-link.active {
+                color: var(--text-primary);
+                background-color: var(--bg-hover);
+            }
+                
+            .navbar-actions {
+                margin-top: 1rem;
+                width: 100%;
+                justify-content: space-between;
+            }
+            
+            .continue-reading {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            
+            .btn-continue {
+                width: 100%;
+            }
+        }
     </style>
 </head>
 <body>
 
     <!-- Навигация -->
-    <nav class="navbar navbar-dark bg-dark mb-4">
+    <nav class="navbar">
         <div class="container">
-            <a class="navbar-brand" href="#">Книжный Советник</a>
-            <div class="d-flex">
-                <a href="catalog.html" class="btn btn-outline-light me-2">📖 Каталог</a>
-                <a href="admin.html" class="btn btn-outline-warning me-2 admin-only">⚙️ Админка</a>
-                <a href="request_moderation.html" class="btn btn-outline-info me-2">📝 Подать запрос</a>
-                <a href="submit_content.html" class="btn btn-outline-info me-2">📝 Подать заявку</a>
-
-                <span class="navbar-text text-white me-3" id="user-email">Загрузка...</span>
-                <button class="btn btn-outline-light btn-sm" id="logout-btn">Выйти</button>
+            <div class="navbar-container">
+                <a class="navbar-brand" href="dashboard.html">
+                    Book<span class="accent">Mania</span>
+                </a>
+                
+                <ul class="navbar-nav">
+                    <li><a href="dashboard.html" class="nav-link active">Главная</a></li>
+                    <li><a href="catalog.html" class="nav-link">Каталог</a></li>
+                    <li><a href="submit_content.html" class="nav-link">Подать заявку</a></li>
+                    <li><a href="request_moderation.html" class="nav-link">Запросы</a></li>
+                    <li><a href="admin.html" class="nav-link admin-only">Админка</a></li>
+                </ul>
+                
+                <div class="navbar-actions">
+                    <span class="user-email" id="user-email">Загрузка...</span>
+                    <button class="btn-logout" id="logout-btn">Выйти</button>
+                </div>
             </div>
         </div>
     </nav>
 
-    <!-- Блок "Продолжить чтение" -->
-    <div class="container mb-4" id="continueReadingBlock" style="display: none;">
-        <div class="alert alert-primary d-flex align-items-center" role="alert">
-            <div class="flex-grow-1">
-                <h5 class="mb-1">📖 Продолжить чтение</h5>
-                <p class="mb-1" id="continueBookTitle">Загрузка...</p>
-                <small class="text-muted" id="continueChapterInfo">Глава...</small>
+    <!-- Основной контент -->
+    <div class="container" style="padding: 2rem 1rem;">
+        
+        <!-- Блок "Продолжить чтение" -->
+        <div class="continue-reading" id="continueReadingBlock" style="display: none;">
+            <div class="continue-reading-info">
+                <div class="continue-reading-label">Продолжить чтение</div>
+                <div class="continue-reading-title" id="continueBookTitle">Загрузка...</div>
+                <div class="continue-reading-chapter" id="continueChapterInfo">Глава...</div>
             </div>
-            <button id="continueReadingBtn" class="btn btn-primary ms-3">
-                Продолжить →
+            <button id="continueReadingBtn" class="btn-continue">
+                Продолжить
             </button>
         </div>
-    </div>
 
-    <!-- Основной контент -->
-    <div class="container">
-        <!-- Вкладки (Tabs) -->
-        <ul class="nav nav-tabs mb-4" id="myTab" role="tablist">
-            <li class="nav-item" role="presentation">
-                <button class="nav-link active" id="rec-tab" data-bs-toggle="tab" data-bs-target="#rec-pane" type="button" role="tab">🔥 Рекомендации</button>
-            </li>
-            <li class="nav-item" role="presentation">
-                <button class="nav-link" id="fav-tab" data-bs-toggle="tab" data-bs-target="#fav-pane" type="button" role="tab">❤️ Избранное</button>
-            </li>
-            <li class="nav-item" role="presentation">
-                <button class="nav-link" id="read-tab" data-bs-toggle="tab" data-bs-target="#read-pane" type="button" role="tab">📖 Мои книги</button>
-            </li>
-            <li class="nav-item" role="presentation">
-                <button class="nav-link" id="stats-tab" data-bs-toggle="tab" data-bs-target="#stats-pane" type="button" role="tab">📊 Статистика</button>
-            </li>
-        </ul>
+        <!-- Вкладки -->
+        <div class="page-tabs" role="tablist">
+            <button class="page-tab active" id="rec-tab" data-bs-toggle="tab" data-bs-target="#rec-pane" type="button" role="tab">
+                Рекомендации
+            </button>
+            <button class="page-tab" id="fav-tab" data-bs-toggle="tab" data-bs-target="#fav-pane" type="button" role="tab">
+                Избранное
+            </button>
+            <button class="page-tab" id="read-tab" data-bs-toggle="tab" data-bs-target="#read-pane" type="button" role="tab">
+                Мои книги
+            </button>
+            <button class="page-tab" id="stats-tab" data-bs-toggle="tab" data-bs-target="#stats-pane" type="button" role="tab">
+                Статистика
+            </button>
+        </div>
 
         <!-- Содержимое вкладок -->
         <div class="tab-content" id="myTabContent">
             
             <!-- 1. Рекомендации -->
             <div class="tab-pane fade show active" id="rec-pane" role="tabpanel">
-                <div class="d-flex justify-content-between align-items-center mb-3">
-                    <h4>Персональные рекомендации</h4>
-                    <button class="btn btn-primary btn-sm" id="refresh-rec">🔄 Обновить</button>
+                <div class="section-header">
+                    <h2 class="section-title">Персональные рекомендации</h2>
+                    <button class="btn-refresh" id="refresh-rec">Обновить</button>
                 </div>
                 <div class="row" id="recommendations-list">
-                    <!-- Сюда app.js вставит книги -->
-                    <div class="spinner-border text-primary" role="status"></div>
+                    <div class="col-12 text-center py-5">
+                        <div class="spinner-border text-primary" role="status"></div>
+                    </div>
                 </div>
             </div>
 
             <!-- 2. Избранное -->
             <div class="tab-pane fade" id="fav-pane" role="tabpanel">
-                <div class="d-flex justify-content-between align-items-center mb-3">
-                    <h4>Ваша коллекция</h4>
-                    <button class="btn btn-outline-primary btn-sm" id="refresh-fav">🔄 Обновить</button>
+                <div class="section-header">
+                    <h2 class="section-title">Ваша коллекция</h2>
+                    <button class="btn-refresh" id="refresh-fav">Обновить</button>
                 </div>
-                <div class="row" id="favorites-list">
-                    <!-- Сюда app.js вставит книги -->
-                </div>
+                <div class="row" id="favorites-list"></div>
             </div>
 
             <!-- 3. Чтение -->
             <div class="tab-pane fade" id="read-pane" role="tabpanel">
-                <h4 class="mb-3">Статусы чтения</h4>
-                <div class="row" id="reading-list">
-                    <!-- Сюда app.js вставит книги -->
+                <div class="section-header">
+                    <h2 class="section-title">Статусы чтения</h2>
                 </div>
+                <div class="row" id="reading-list"></div>
             </div>
 
             <!-- 4. Статистика -->
             <div class="tab-pane fade" id="stats-pane" role="tabpanel">
-                <h4 class="mb-4">📊 Ваша статистика чтения</h4>
-                
+                <div class="section-header">
+                    <h2 class="section-title">Ваша статистика</h2>
+                </div>
                 <div class="row g-4" id="statsContainer">
-                    <!-- Сюда app.js вставит карточки -->
-                    <div class="col-12 text-center">
+                    <div class="col-12 text-center py-5">
                         <div class="spinner-border text-primary" role="status"></div>
                     </div>
                 </div>
@@ -119,8 +602,7 @@
         </div>
     </div>
 
-    <!-- Подключение JS файлов -->
-    <!-- Порядок важен: сначала API, потом Auth, потом App -->
+    <!-- Скрипты -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script src="js/theme.js"></script>
     <script src="js/toast.js"></script>

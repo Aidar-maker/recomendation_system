@@ -3,81 +3,453 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Книжный Советник - Чтение</title>
+    <title>Book Mania - Чтение</title>
     <script>
         (function() {
-            const saved = localStorage.getItem('siteTheme') || 'light';
+            const saved = localStorage.getItem('siteTheme') || 'dark';
             document.documentElement.setAttribute('data-theme', saved);
         })();
     </script>
-    <!-- Bootstrap 5 CSS -->
+    
+    <link rel="stylesheet" href="styles/variables.css">
+    <link rel="stylesheet" href="styles/global.css">
+    <link rel="stylesheet" href="styles/components.css">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="css/themes.css">
+    
     <style>
-        .reader-container {
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 20px;
+        body {
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
         }
-        
-        .chapter-content {
-            background: var(--card-bg);
-            color: var(--text-color);
-            border-radius: 10px;
-            padding: 30px;
-            margin: 20px 0;
-            box-shadow: 0 2px 8px var(--shadow-color);
-            font-size: 1.1rem;
-        }
-        
-        .chapter-content h1, .chapter-content h2, .chapter-content h3 {
-            color: var(--text-color);
-            margin-top: 1.5em;
-        }
-        
-        .chapter-content p {
-            margin-bottom: 1em;
-            text-align: justify;
-        }
-        
+
+        /* ===== HEADER ===== */
         .reader-header {
             position: sticky;
             top: 0;
-            background: var(--bg-color);
-            color: var(--text-color);
-            padding: 15px 0;
+            background-color: var(--bg-secondary);
             border-bottom: 1px solid var(--border-color);
+            padding: 1rem 0;
             z-index: 100;
         }
-        
+
+        .header-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .header-nav {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .header-link {
+            color: var(--text-secondary);
+            text-decoration: none;
+            padding: 0.5rem 1rem;
+            border-radius: var(--radius-md);
+            font-size: 0.875rem;
+            font-weight: 500;
+            transition: all 0.2s;
+            border: 1px solid var(--border-color);
+            background: transparent;
+        }
+
+        .header-link:hover {
+            background-color: var(--bg-hover);
+            color: var(--text-primary);
+            border-color: var(--border-light);
+        }
+
+        .header-controls {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .control-btn {
+            background-color: transparent;
+            border: 1px solid var(--border-color);
+            color: var(--text-secondary);
+            padding: 0.5rem 0.75rem;
+            border-radius: var(--radius-md);
+            cursor: pointer;
+            font-size: 0.875rem;
+            font-weight: 500;
+            transition: all 0.2s;
+            min-width: 40px;
+        }
+
+        .control-btn:hover {
+            background-color: var(--bg-hover);
+            color: var(--text-primary);
+            border-color: var(--border-light);
+        }
+
+        .control-btn.active {
+            background-color: var(--accent-primary);
+            color: white;
+            border-color: var(--accent-primary);
+        }
+
+        .font-size-group {
+            display: flex;
+            gap: 0.25rem;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            padding: 0.125rem;
+        }
+
+        .font-size-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            padding: 0.375rem 0.625rem;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+        .font-size-btn:hover {
+            background-color: var(--bg-hover);
+            color: var(--text-primary);
+        }
+
+        .font-size-btn.active {
+            background-color: var(--accent-primary);
+            color: white;
+        }
+
+        .header-title {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+
+        .book-title-small {
+            font-size: 0.875rem;
+            color: var(--text-muted);
+            margin: 0;
+            font-weight: 400;
+        }
+
+        .chapter-title-header {
+            font-size: 1.125rem;
+            color: var(--text-primary);
+            margin: 0;
+            font-weight: 600;
+        }
+
+        /* ===== CHAPTER SELECTOR ===== */
+        .chapter-selector {
+            position: fixed;
+            top: 100px;
+            right: 20px;
+            z-index: 99;
+            background-color: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            padding: 1rem;
+            min-width: 280px;
+            box-shadow: var(--shadow-lg);
+        }
+
+        .selector-label {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            display: block;
+        }
+
+        .selector-select {
+            width: 100%;
+            background-color: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            padding: 0.5rem 0.75rem;
+            border-radius: var(--radius-md);
+            font-size: 0.875rem;
+            cursor: pointer;
+            appearance: none;
+            background-image: url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23b0b0b0' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 0.75rem center;
+            padding-right: 2rem;
+        }
+
+        .selector-select:focus {
+            outline: none;
+            border-color: var(--accent-primary);
+        }
+
+        /* ===== CONTENT ===== */
+        .reader-container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 2rem 1rem;
+            padding-bottom: 100px;
+        }
+
+        .chapter-content {
+            background-color: var(--bg-card);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            padding: 3rem;
+            line-height: 1.8;
+            font-size: 1.1rem;
+        }
+
+        .chapter-content h1, 
+        .chapter-content h2, 
+        .chapter-content h3 {
+            color: var(--text-primary);
+            margin-top: 2em;
+            margin-bottom: 0.75em;
+            font-weight: 600;
+        }
+
+        .chapter-content h1 { font-size: 2rem; }
+        .chapter-content h2 { font-size: 1.5rem; }
+        .chapter-content h3 { font-size: 1.25rem; }
+
+        .chapter-content p {
+            margin-bottom: 1.25em;
+            text-align: justify;
+            color: var(--text-secondary);
+        }
+
+        .chapter-content a {
+            color: var(--accent-primary);
+            text-decoration: underline;
+        }
+
+        .chapter-content blockquote {
+            border-left: 3px solid var(--accent-primary);
+            padding-left: 1.5rem;
+            margin: 1.5em 0;
+            color: var(--text-muted);
+            font-style: italic;
+        }
+
+        /* Font sizes */
+        .font-small { font-size: 0.95rem !important; }
+        .font-medium { font-size: 1.1rem !important; }
+        .font-large { font-size: 1.3rem !important; }
+
+        /* ===== NAVIGATION ===== */
+        .chapter-navigation {
+            display: flex;
+            justify-content: space-between;
+            gap: 1rem;
+            margin-top: 2rem;
+        }
+
+        .nav-btn {
+            flex: 1;
+            max-width: 250px;
+            background-color: var(--bg-card);
+            border: 1px solid var(--border-color);
+            color: var(--text-secondary);
+            padding: 1rem 1.5rem;
+            border-radius: var(--radius-md);
+            cursor: pointer;
+            font-size: 0.95rem;
+            font-weight: 500;
+            transition: all 0.2s;
+            text-align: center;
+        }
+
+        .nav-btn:hover:not(:disabled) {
+            background-color: var(--bg-hover);
+            color: var(--text-primary);
+            border-color: var(--accent-primary);
+            transform: translateY(-2px);
+        }
+
+        .nav-btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        .nav-btn-primary {
+            background-color: var(--accent-primary);
+            color: white;
+            border-color: var(--accent-primary);
+        }
+
+        .nav-btn-primary:hover:not(:disabled) {
+            background-color: var(--accent-hover);
+            color: white;
+        }
+
+        /* ===== PROGRESS BAR ===== */
         .progress-bar-container {
             position: fixed;
             bottom: 0;
             left: 0;
             right: 0;
-            background: var(--card-bg);
-            color: var(--text-color);
-            padding: 10px 20px;
+            background-color: var(--bg-secondary);
+            border-top: 1px solid var(--border-color);
+            padding: 0.75rem 2rem;
+            z-index: 100;
+        }
+
+        .progress-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+
+        .progress-label {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            font-weight: 600;
+        }
+
+        .progress-percent {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            font-weight: 600;
+        }
+
+        .progress-track {
+            width: 100%;
+            height: 6px;
+            background-color: var(--bg-hover);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background-color: var(--accent-primary);
+            transition: width 0.3s ease;
+            border-radius: 3px;
+        }
+
+        /* ===== ERROR STATE ===== */
+        .error-state {
+            text-align: center;
+            padding: 3rem 2rem;
+            color: var(--text-muted);
+        }
+
+        .error-title {
+            font-size: 1.25rem;
+            color: var(--danger);
+            margin-bottom: 1rem;
+        }
+
+        .error-link {
+            display: inline-block;
+            margin-top: 1rem;
+            padding: 0.75rem 1.5rem;
+            background-color: var(--bg-hover);
+            color: var(--text-primary);
+            border-radius: var(--radius-md);
+            text-decoration: none;
+            transition: all 0.2s;
+        }
+
+        .error-link:hover {
+            background-color: var(--accent-primary);
+            color: white;
+        }
+
+                /* Chapter selector bottom */
+        .progress-bottom-content {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .chapter-selector-bottom {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding-top: 0.75rem;
+            margin-top: 0.75rem;
             border-top: 1px solid var(--border-color);
         }
-        
-        .progress {
-            height: 8px;
-            border-radius: 4px;
+
+        .selector-label {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            font-weight: 600;
+            white-space: nowrap;
         }
-        
-        .nav-btn {
-            min-width: 120px;
-        }
-        
-        .theme-toggle {
+
+        .selector-select {
+            flex: 1;
+            max-width: 400px;
+            background-color: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            padding: 0.5rem 0.75rem;
+            border-radius: var(--radius-md);
+            font-size: 0.875rem;
             cursor: pointer;
-            font-size: 1.2rem;
+            appearance: none;
+            background-image: url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23b0b0b0' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 0.75rem center;
+            padding-right: 2rem;
         }
-        
-        .font-small { font-size: 0.9rem !important; }
-        .font-medium { font-size: 1.1rem !important; }
-        .font-large { font-size: 1.3rem !important; }
+
+        .selector-select:focus {
+            outline: none;
+            border-color: var(--accent-primary);
+        }
+
+        /* ===== RESPONSIVE ===== */
+        @media (max-width: 768px) {
+            .header-top {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 0.75rem;
+            }
+
+            .header-nav,
+            .header-controls {
+                justify-content: center;
+            }
+
+            .chapter-selector {
+                position: static;
+                width: 100%;
+                margin: 1rem 0;
+                min-width: auto;
+            }
+
+            .chapter-content {
+                padding: 1.5rem;
+            }
+
+            .chapter-navigation {
+                flex-direction: column;
+            }
+
+            .nav-btn {
+                max-width: 100%;
+            }
+
+            .progress-bar-container {
+                padding: 0.75rem 1rem;
+            }
+        }
     </style>
 </head>
 <body>
@@ -85,60 +457,67 @@
     <!-- Верхняя панель -->
     <header class="reader-header">
         <div class="container">
-            <div class="d-flex justify-content-between align-items-center">
-                <a href="catalog.html" class="btn btn-outline-secondary btn-sm">← Каталог</a>
-                
-                <div class="d-flex align-items-center gap-3">
-                    <!-- Настройки шрифта -->
-                    <div class="btn-group btn-group-sm">
-                        <button class="btn btn-outline-secondary" onclick="setFontSize('small')">A-</button>
-                        <button class="btn btn-outline-secondary" onclick="setFontSize('medium')">A</button>
-                        <button class="btn btn-outline-secondary" onclick="setFontSize('large')">A+</button>
-                    </div>
-                    
-                    <!-- Переключатель тем -->
-                    <button class="btn btn-outline-secondary btn-sm" id="themeToggle" onclick="cycleTheme()" title="Сменить тему">
-                        🎨 Тема
-                    </button>
+            <div class="header-top">
+                <!-- Левая часть: навигация -->
+                <div class="header-nav">
+                    <a href="catalog.html" class="header-link">Каталог</a>
+                    <a href="dashboard.html" class="header-link">Библиотека</a>
                 </div>
                 
-                <a href="dashboard.html" class="btn btn-outline-secondary btn-sm">📚 Библиотека</a>
-            </div>
-            
-            <!-- Заголовок главы -->
-            <div class="mt-3">
-                <h5 class="mb-1" id="bookTitle">Загрузка...</h5>
-                <h4 class="mb-0" id="chapterTitle">Глава...</h4>
+                <!-- Центр: заголовок -->
+                <div class="header-title">
+                    <h5 class="book-title-small" id="bookTitle">Загрузка...</h5>
+                    <h4 class="chapter-title-header" id="chapterTitle">Глава...</h4>
+                </div>
+                
+                <!-- Правая часть: настройки шрифта -->
+                <div class="header-controls">
+                    <div class="font-size-group">
+                        <button class="font-size-btn" onclick="setFontSize('small')" title="Мелкий шрифт">A-</button>
+                        <button class="font-size-btn active" onclick="setFontSize('medium')" title="Средний шрифт">A</button>
+                        <button class="font-size-btn" onclick="setFontSize('large')" title="Крупный шрифт">A+</button>
+                    </div>
+                </div>
             </div>
         </div>
     </header>
 
     <!-- Контент главы -->
     <main class="reader-container">
-        <article id="chapterContent" class="chapter-content">
+        <article id="chapterContent" class="chapter-content font-medium">
             <div class="text-center py-5">
                 <div class="spinner-border text-primary" role="status">
                     <span class="visually-hidden">Загрузка...</span>
                 </div>
-                <p class="mt-3 text-muted">Загружаем главу...</p>
+                <p class="mt-3" style="color: var(--text-muted);">Загружаем главу...</p>
             </div>
         </article>
         
         <!-- Навигация между главами -->
-        <div class="d-flex justify-content-between mt-4">
-            <button id="prevBtn" class="btn btn-primary nav-btn" disabled>← Назад</button>
-            <button id="nextBtn" class="btn btn-primary nav-btn" disabled>Вперёд →</button>
+        <div class="chapter-navigation">
+            <button id="prevBtn" class="nav-btn" disabled>Назад</button>
+            <button id="nextBtn" class="nav-btn nav-btn-primary" disabled>Вперёд</button>
         </div>
     </main>
 
     <!-- Индикатор прогресса -->
     <div class="progress-bar-container">
-        <div class="d-flex justify-content-between align-items-center mb-2">
-            <small class="text-muted">Прогресс чтения</small>
-            <small id="progressPercent" class="text-muted">0%</small>
-        </div>
-        <div class="progress">
-            <div id="progressFill" class="progress-bar bg-primary" role="progressbar" style="width: 0%"></div>
+        <div class="progress-bottom-content">
+            <div class="progress-info">
+                <span class="progress-label">Прогресс чтения</span>
+                <span class="progress-percent" id="progressPercent">0%</span>
+            </div>
+            <div class="progress-track">
+                <div id="progressFill" class="progress-fill" style="width: 0%"></div>
+            </div>
+            
+            <!-- Селектор глав -->
+            <div class="chapter-selector-bottom">
+                <label class="selector-label">Глава</label>
+                <select id="chapterSelectorBottom" class="selector-select" onchange="navigateToChapter(parseInt(this.value))">
+                    <!-- Сюда JavaScript вставит главы -->
+                </select>
+            </div>
         </div>
     </div>
 

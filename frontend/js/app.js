@@ -31,42 +31,57 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Создание HTML-карточки книги
     function createBookCard(book, type = 'recommendation') {
         const statusBadge = book.status ? getStatusBadge(book.status) : '';
-        const ratingBadge = book.rating ? `<span class="badge bg-warning text-dark">★ ${book.rating}</span>` : '';
+        const ratingBadge = book.rating ? `<span class="badge" style="background: var(--warning); color: var(--bg-primary);">★ ${book.rating}</span>` : '';
+        
+        // Определяем URL обложки
+        const coverUrl = book.image_url && book.image_url !== 'none' && book.image_url.trim() !== '' 
+            ? book.image_url 
+            : 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
+                <svg xmlns="http://www.w3.org/2000/svg" width="200" height="300" viewBox="0 0 200 300">
+                    <rect fill="#2a2a2a" width="200" height="300"/>
+                    <text fill="#707070" font-family="Arial, sans-serif" font-size="14" x="50%" y="50%" text-anchor="middle" dy=".3em">
+                        Нет обложки
+                    </text>
+                </svg>
+            `);
         
         let actionButtons = '';
         
         if (type === 'recommendation') {
             actionButtons = `
-                <button class="btn btn-sm btn-outline-primary mt-2 me-1" onclick="event.stopPropagation(); addToFavorites(${book.book_id});">❤️ В избранное</button>
-                <button class="btn btn-sm btn-outline-success mt-2" onclick="event.stopPropagation(); setStatus(${book.book_id}, 2);">📖 Читаю</button>
+                <button class="book-action-btn" onclick="event.stopPropagation(); addToFavorites(${book.book_id});">В избранное</button>
+                <button class="book-action-btn book-action-success" onclick="event.stopPropagation(); setStatus(${book.book_id}, 2);">Читаю</button>
             `;
         } else if (type === 'favorites') {
             actionButtons = `
-                <button class="btn btn-sm btn-outline-danger mt-2" onclick="event.stopPropagation(); removeFromFavorites(${book.book_id});">🗑 Удалить</button>
+                <button class="book-action-btn book-action-danger" onclick="event.stopPropagation(); removeFromFavorites(${book.book_id});">Удалить</button>
             `;
         } else if (type === 'reading') {
             actionButtons = `
-                <select class="form-select form-select-sm mt-2" onchange="event.stopPropagation(); changeStatus(${book.book_id}, this.value);">
-                    <option value="1" ${book.status == 1 ? 'selected' : ''}>📅 В планах</option>
-                    <option value="2" ${book.status == 2 ? 'selected' : ''}>📖 Читаю</option>
-                    <option value="3" ${book.status == 3 ? 'selected' : ''}>✅ Прочитано</option>
-                    <option value="4" ${book.status == 4 ? 'selected' : ''}>❌ Брошено</option>
+                <select class="book-status-select" onchange="event.stopPropagation(); changeStatus(${book.book_id}, this.value);">
+                    <option value="1" ${book.status == 1 ? 'selected' : ''}>В планах</option>
+                    <option value="2" ${book.status == 2 ? 'selected' : ''}>Читаю</option>
+                    <option value="3" ${book.status == 3 ? 'selected' : ''}>Прочитано</option>
+                    <option value="4" ${book.status == 4 ? 'selected' : ''}>Брошено</option>
                 </select>
             `;
         }
 
         return `
-            <div class="col-md-4 mb-4">
-                <div class="card h-100 shadow-sm book-card-clickable" style="cursor: pointer;" data-book-id="${book.book_id}">
-                    <div class="card-body">
-                        <h5 class="card-title">${book.title}</h5>
-                        <h6 class="card-subtitle mb-2 text-muted">${book.author}</h6>
-                        <div class="d-flex gap-2 mb-2">
-                            ${statusBadge}
-                            ${ratingBadge}
+            <div class="col-md-4 col-lg-3 mb-4">
+                <div class="book-card" data-book-id="${book.book_id}">
+                    <img src="${coverUrl}" alt="${book.title}" class="book-cover" onerror="this.src='data:image/svg+xml;charset=UTF-8,' + encodeURIComponent('<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'200\' height=\'300\'><rect fill=\'%232a2a2a\' width=\'200\' height=\'300\'/><text fill=\'%23707070\' font-family=\'Arial\' font-size=\'14\' x=\'50%25\' y=\'50%25\' text-anchor=\'middle\' dy=\'.3em\'>Нет обложки</text></svg>')">
+                    <div class="book-info">
+                        <h3 class="book-title">${book.title}</h3>
+                        <p class="book-author">${book.author}</p>
+                        <div class="book-meta">
+                            <div class="book-badges">
+                                ${statusBadge}
+                                ${ratingBadge}
+                            </div>
                         </div>
-                        <p class="card-text small text-truncate">${book.description || 'Нет описания'}</p>
-                        <div class="card-actions">
+                        <p class="book-description">${book.description || 'Нет описания'}</p>
+                        <div class="book-actions">
                             ${actionButtons}
                         </div>
                     </div>
@@ -75,12 +90,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         `;
     }
 
-    function getStatusBadge(status) {
+     function getStatusBadge(status) {
         const map = {
-            1: '<span class="badge bg-secondary">📅 В планах</span>',
-            2: '<span class="badge bg-info text-dark">📖 Читаю</span>',
-            3: '<span class="badge bg-success">✅ Прочитано</span>',
-            4: '<span class="badge bg-danger">❌ Брошено</span>'
+            1: '<span class="badge" style="background: var(--bg-secondary); color: var(--text-secondary);">В планах</span>',
+            2: '<span class="badge" style="background: var(--info); color: white;">Читаю</span>',
+            3: '<span class="badge" style="background: var(--success); color: white;">Прочитано</span>',
+            4: '<span class="badge" style="background: var(--danger); color: white;">Брошено</span>'
         };
         return map[status] || '';
     }
@@ -195,25 +210,22 @@ document.addEventListener('DOMContentLoaded', async () => {
         try {
             const stats = await statsAPI.getReadingStats();
             
-            const createStatCard = (title, value, icon, color) => `
+            const createStatCard = (title, value, color) => `
                 <div class="col-md-4 col-lg-2">
-                    <div class="card h-100 text-center shadow-sm">
-                        <div class="card-body">
-                            <div class="display-4 mb-2">${icon}</div>
-                            <h2 class="card-title text-${color} fw-bold">${value}</h2>
-                            <p class="card-text text-muted small">${title}</p>
-                        </div>
+                    <div class="stat-card accent-${color}">
+                        <div class="stat-value">${value}</div>
+                        <p class="stat-label">${title}</p>
                     </div>
                 </div>
             `;
             
             container.innerHTML = `
-                ${createStatCard('Всего в библиотеке', stats.total_books, '📚', 'primary')}
-                ${createStatCard('Прочитано', stats.books_read, '✅', 'success')}
-                ${createStatCard('Читаю сейчас', stats.books_reading, '📖', 'info')}
-                ${createStatCard('В планах', stats.books_planned, '📅', 'secondary')}
-                ${createStatCard('Брошено', stats.books_dropped, '❌', 'danger')}
-                ${createStatCard('Средняя оценка', stats.average_rating, '⭐', 'warning')}
+                ${createStatCard('Всего в библиотеке', stats.total_books, 'primary')}
+                ${createStatCard('Прочитано', stats.books_read, 'success')}
+                ${createStatCard('Читаю сейчас', stats.books_reading, 'info')}
+                ${createStatCard('В планах', stats.books_planned, 'secondary')}
+                ${createStatCard('Брошено', stats.books_dropped, 'danger')}
+                ${createStatCard('Средняя оценка', stats.average_rating, 'warning')}
             `;
             
         } catch (e) {

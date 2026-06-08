@@ -24,6 +24,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const bookDescription = document.getElementById('bookDescription');
     const bookCover = document.getElementById('bookCover');
     const chaptersContainer = document.getElementById('chaptersContainer');
+    const chaptersCount = document.getElementById('chaptersCount');
     const startReadingBtn = document.getElementById('startReadingBtn');
     const addToFavoritesBtn = document.getElementById('addToFavoritesBtn');
     const setStatusBtn = document.getElementById('setStatusBtn');
@@ -35,8 +36,17 @@ document.addEventListener('DOMContentLoaded', async () => {
     let currentRating = 0;
     let chaptersList = [];
 
-    // === ЗАГРУЗКА ДАННЫХ ===
+    // Заглушка обложки (темная)
+    const defaultCover = 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
+        <svg xmlns="http://www.w3.org/2000/svg" width="350" height="525" viewBox="0 0 350 525">
+            <rect fill="#2a2a2a" width="350" height="525"/>
+            <text fill="#707070" font-family="Arial, sans-serif" font-size="16" x="50%" y="50%" text-anchor="middle" dy=".3em">
+                Нет обложки
+            </text>
+        </svg>
+    `);
 
+    // === ЗАГРУЗКА ДАННЫХ ===
     async function loadBookDetails() {
         try {
             currentBook = await apiRequest(`/books/${bookId}`);
@@ -48,24 +58,15 @@ document.addEventListener('DOMContentLoaded', async () => {
             bookPublisher.textContent = currentBook.publisher || '—';
             bookDescription.textContent = currentBook.description || 'Описание отсутствует';
             
-            // Отображаем жанры (если есть)
+            // Отображаем жанры
             const genresContainer = document.getElementById('bookGenres');
             if (genresContainer && currentBook.genres && currentBook.genres.length > 0) {
                 genresContainer.innerHTML = currentBook.genres.map(g => 
-                    `<span class="badge bg-secondary me-1">${escapeHtml(g.genre_name)}</span>`
+                    `<span class="genre-badge">${escapeHtml(g.genre_name)}</span>`
                 ).join('');
             }
 
-            // Обложка - проверяем на валидность
-            const defaultCover = 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
-                <svg xmlns="http://www.w3.org/2000/svg" width="300" height="400" viewBox="0 0 300 400">
-                    <rect fill="#e9ecef" width="300" height="400"/>
-                    <text fill="#6c757d" font-family="Arial, sans-serif" font-size="16" x="50%" y="50%" text-anchor="middle" dy=".3em">
-                        Нет обложки
-                    </text>
-                </svg>
-            `);
-            
+            // Обложка
             if (currentBook.image_url && 
                 currentBook.image_url.trim() !== '' && 
                 currentBook.image_url.toLowerCase() !== 'none' &&
@@ -85,8 +86,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             // Загружаем текущую оценку
             await loadCurrentRating();
 
-            console.log('✅ Книга загружена:', currentBook.title);
-
         } catch (e) {
             console.error('Ошибка загрузки:', e);
             bookTitle.textContent = 'Ошибка загрузки';
@@ -98,27 +97,34 @@ document.addEventListener('DOMContentLoaded', async () => {
     function loadChapters(chapters) {
         if (chapters.length === 0) {
             chaptersContainer.innerHTML = `
-                <div class="text-center text-muted py-3">
-                    📚 В этой книге ещё нет глав
+                <div class="empty-chapters">
+                    В этой книге ещё нет глав
                 </div>
             `;
+            chaptersCount.textContent = '0 глав';
             startReadingBtn.disabled = true;
             return;
         }
 
         // Сортируем по order_number
-        const sortedChapters = chapters.sort((a, b) => a.order_number - b.order_number);
+        const sortedChapters = chapters.sort((a, b) => parseFloat(a.order_number) - parseFloat(b.order_number));
 
-        chaptersContainer.innerHTML = sortedChapters.map(chapter => `
-            <div class="chapter-item" data-chapter-id="${chapter.chapter_id}">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <strong>Глава ${chapter.order_number + 1}:</strong> ${escapeHtml(chapter.title)}
+        chaptersCount.textContent = `${sortedChapters.length} ${getChapterWord(sortedChapters.length)}`;
+
+        chaptersContainer.innerHTML = sortedChapters.map(chapter => {
+            const orderNum = parseFloat(chapter.order_number);
+            const displayNum = orderNum == Math.floor(orderNum) ? Math.floor(orderNum) + 1 : orderNum;
+            
+            return `
+                <div class="chapter-item" data-chapter-id="${chapter.chapter_id}">
+                    <div class="chapter-info">
+                        <div class="chapter-number">Глава ${displayNum}</div>
+                        <h3 class="chapter-title">${escapeHtml(chapter.title)}</h3>
                     </div>
-                    <span class="badge bg-primary">Читать →</span>
+                    <div class="chapter-action">Читать →</div>
                 </div>
-            </div>
-        `).join('');
+            `;
+        }).join('');
 
         // Добавляем обработчики кликов на главы
         document.querySelectorAll('.chapter-item').forEach(item => {
@@ -133,21 +139,21 @@ document.addEventListener('DOMContentLoaded', async () => {
         startReadingBtn.onclick = () => openChapter(firstChapter.chapter_id);
     }
 
-    // Открытие главы (сделаем глобальной)
+    // Открытие главы
     window.openChapter = function(chapterId) {
         window.location.href = `reader.html?book=${bookId}&chapter=${chapterId}`;
     };
 
-    // Проверка, добавлена ли книга в избранное
+    // Проверка избранного
     async function checkFavoriteStatus() {
         try {
             const favorites = await booksAPI.getFavorites();
             const isFavorite = favorites.books.some(book => book.book_id === bookId);
             
             if (isFavorite) {
-                addToFavoritesBtn.textContent = '💔 Удалить из избранного';
-                addToFavoritesBtn.classList.remove('btn-outline-danger');
-                addToFavoritesBtn.classList.add('btn-danger');
+                addToFavoritesBtn.textContent = 'Удалить из избранного';
+                addToFavoritesBtn.classList.remove('btn-action-outline');
+                addToFavoritesBtn.classList.add('btn-action-danger');
             }
         } catch (e) {
             console.warn('Не удалось проверить избранное:', e);
@@ -190,10 +196,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                 await ratingsAPI.setRating(bookId, rating);
                 currentRating = rating;
                 updateRatingDisplay(rating);
-                console.log(`⭐ Оценка сохранена: ${rating}`);
+                showToast('Оценка сохранена', 'success');
             } catch (e) {
                 console.error('Ошибка сохранения оценки:', e);
-                showToast(`Ошибка: ${e.message}`, 'error')
+                showToast(`Ошибка: ${e.message}`, 'error');
             }
         });
     });
@@ -205,30 +211,30 @@ document.addEventListener('DOMContentLoaded', async () => {
             
             if (isFavorite) {
                 await booksAPI.removeFavorite(bookId);
-                addToFavoritesBtn.textContent = '❤️ В избранное';
-                addToFavoritesBtn.classList.remove('btn-danger');
-                addToFavoritesBtn.classList.add('btn-outline-danger');
-                console.log('💔 Удалено из избранного');
+                addToFavoritesBtn.textContent = 'В избранное';
+                addToFavoritesBtn.classList.remove('btn-action-danger');
+                addToFavoritesBtn.classList.add('btn-action-outline');
+                showToast('Удалено из избранного', 'success');
             } else {
                 await booksAPI.addFavorite(bookId);
-                addToFavoritesBtn.textContent = '💔 Удалить из избранного';
-                addToFavoritesBtn.classList.remove('btn-outline-danger');
-                addToFavoritesBtn.classList.add('btn-danger');
-                console.log('❤️ Добавлено в избранное');
+                addToFavoritesBtn.textContent = 'Удалить из избранного';
+                addToFavoritesBtn.classList.remove('btn-action-outline');
+                addToFavoritesBtn.classList.add('btn-action-danger');
+                showToast('Добавлено в избранное', 'success');
             }
         } catch (e) {
             console.error('Ошибка:', e);
-            showToast(`Ошибка: ${e.message}`, 'error')
+            showToast(`Ошибка: ${e.message}`, 'error');
         }
     });
 
     // Кнопка "В планы"
     setStatusBtn.addEventListener('click', async () => {
         try {
-            await booksAPI.setStatus(bookId, 1); // 1 = В планах
-            setStatusBtn.textContent = '✅ Статус установлен';
+            await booksAPI.setStatus(bookId, 1);
+            setStatusBtn.textContent = 'Статус установлен';
             setStatusBtn.disabled = true;
-            console.log('📖 Статус "В планах" установлен');
+            showToast('Статус "В планах" установлен', 'success');
         } catch (e) {
             console.error('Ошибка:', e);
             showToast(`Ошибка: ${e.message}`, 'error');
@@ -239,6 +245,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (logoutBtn) {
         logoutBtn.addEventListener('click', () => {
             localStorage.removeItem('accessToken');
+            localStorage.removeItem('userEmail');
             window.location.href = 'index.html';
         });
     }
@@ -249,6 +256,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         const div = document.createElement('div');
         div.textContent = text;
         return div.innerHTML;
+    }
+
+    // Склонение "глава"
+    function getChapterWord(count) {
+        if (count % 10 === 1 && count % 100 !== 11) return 'глава';
+        if ([2, 3, 4].includes(count % 10) && ![12, 13, 14].includes(count % 100)) return 'главы';
+        return 'глав';
     }
 
     // Инициализация
