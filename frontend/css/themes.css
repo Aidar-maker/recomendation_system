@@ -1,6 +1,6 @@
 /* === ГЛОБАЛЬНЫЕ ТЕМЫ === */
 
-/* Базовые переменные (светлая тема по умолчанию) */
+/* Светлая тема (по умолчанию) */
 :root,
 [data-theme="light"] {
     --bg-color: #ffffff;
@@ -187,8 +187,10 @@ hr {
     border-color: var(--border-color) !important;
 }
 
-.btn-close {
-    
+/* Превью */
+.chapter-preview {
+    background-color: var(--hover-bg) !important;
+    color: var(--text-color) !important;
 }
 
 /* Спиннеры */
@@ -202,37 +204,13 @@ hr {
     color: #ffffff !important;
 }
 
-/* Превью обложки */
-.chapter-preview {
-    background-color: var(--hover-bg) !important;
-    color: var(--text-color) !important;
-}
-
-/* Читалка - переопределяем свои стили */
-[data-theme="cream"] .reader-container,
-[data-theme="cream"] .chapter-content {
-    background-color: #faf6ee !important;
-    color: #3d3529 !important;
-}
-
-[data-theme="dark"] .reader-container,
-[data-theme="dark"] .chapter-content {
-    background-color: #16213e !important;
-    color: #e9ecef !important;
-}
-
-/* Плавные переходы для всех элементов */
+/* Плавные переходы */
 * {
     transition-property: background-color, color, border-color;
     transition-duration: 0.2s;
     transition-timing-function: ease;
 }
 
-/* Исключения - элементы без перехода */
-img,
-video,
-canvas,
-.spinner-border,
-.progress-bar {
+img, video, canvas, .spinner-border, .progress-bar {
     transition: none !important;
 }
